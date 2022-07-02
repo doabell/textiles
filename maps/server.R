@@ -25,19 +25,19 @@ function(input, output, session) {
     input$table_updateBtn
     
     #reading in all of the inputs, isolating them
-    dataSet <- isolate(input$dataSet)
-    dataType <- isolate(input$dataType)
-    regionChoice <- isolate(input$regionChoice)
-    textileName <- isolate(input$textileName)
-    colors <- isolate(input$colors)
-    patterns <- isolate(input$patterns)
-    process <- isolate(input$process)
-    fibers <- isolate(input$fibers)
-    geography <- isolate(input$geography)
-    qualities <- isolate(input$qualities)
+    dataSet <- input$dataSet
+    dataType <- input$dataType
+    regionChoice <- input$regionChoice
+    textileName <- input$textileName
+    colors <- input$colors
+    patterns <- input$patterns
+    process <- input$process
+    fibers <- input$fibers
+    geography <- input$geography
+    qualities <- input$qualities
     # inferredQualities <- isolate(input$inferredQualities)
-    area <- isolate(input$zoomTo)
-    isolate(input)
+    area <- input$zoomTo
+    input
     # table_update <- isolate(input$table_updateBtn)
     # graph_update <- isolate(input$graph_updateBtn)
     
@@ -55,18 +55,18 @@ function(input, output, session) {
       }
     
     
-    if(isolate(input$dataSet) != "Both"){
-      data <- private_filter_by(data,isolate(input$dataSet),data$company)
+    if(input$dataSet != "Both"){
+      data <- private_filter_by(data,input$dataSet,data$company)
     }
-    data <- private_filter_by(data,isolate(input$textileName),data$textile_name)
-    data <- filter_colors(data,isolate(input$colors))
-    data <- private_filter_by(data,isolate(input$patterns),data$textile_pattern_arch)
-    data <- private_filter_by(data,isolate(input$process),data$textile_process_arch)
-    data <- private_filter_by(data,isolate(input$fibers),data$textile_fiber_arch)
-    data <- private_filter_by(data,isolate(input$geography),data$textile_geography_arch)
-    data <- private_filter_by(data,isolate(input$qualities),data$textile_quality_arch)
-    # data <- private_filter_by(data,isolate(input$inferredQualities),data$textile_quality_inferred)
-    data <- private_filter_by(data,isolate(input$year),data[[return_yrColname(isolate(input$regionChoice))]])
+    data <- private_filter_by(data,input$textileName,data$textile_name)
+    data <- filter_colors(data,input$colors)
+    data <- private_filter_by(data,input$patterns,data$textile_pattern_arch)
+    data <- private_filter_by(data,input$process,data$textile_process_arch)
+    data <- private_filter_by(data,input$fibers,data$textile_fiber_arch)
+    data <- private_filter_by(data,input$geography,data$textile_geography_arch)
+    data <- private_filter_by(data,input$qualities,data$textile_quality_arch)
+    # data <- private_filter_by(data,input$inferredQualities,data$textile_quality_inferred)
+    data <- private_filter_by(data,input$year,data[[return_yrColname(input$regionChoice)]])
 
     #browser()
     
@@ -105,7 +105,7 @@ function(input, output, session) {
     selectizeInput(inputId = "colors",
                    label = "Choose color(s) of interest",
                    choices = color_choices,
-                   selected = isolate(input$colors),
+                   selected = input$colors,
                    multiple = TRUE
                    )
 
@@ -240,20 +240,20 @@ function(input, output, session) {
     input$updateBtn
     
     #reading in all of the inputs, isolating them
-    dataSet <- isolate(input$dataSet)
-    dataType <- isolate(input$dataType)
-    regionChoice <- isolate(input$regionChoice)
-    textileName <- isolate(input$textileName)
-    colors <- isolate(input$colors)
-    patterns <- isolate(input$patterns)
-    process <- isolate(input$process)
-    fibers <- isolate(input$fibers)
-    geography <- isolate(input$geography)
-    qualities <- isolate(input$qualities)
-    # inferredQualities <- isolate(input$inferredQualities)
-    area <- isolate(input$zoomTo)
-    table_update <- isolate(input$table_updateBtn)
-    graph_update <- isolate(input$graph_updateBtn)
+    dataSet <- input$dataSet
+    dataType <- input$dataType
+    regionChoice <- input$regionChoice
+    textileName <- input$textileName
+    colors <- input$colors
+    patterns <- input$patterns
+    process <- input$process
+    fibers <- input$fibers
+    geography <- input$geography
+    qualities <- input$qualities
+    # inferredQualities <- input$inferredQualities
+    area <- input$zoomTo
+    table_update <- input$table_updateBtn
+    graph_update <- input$graph_updateBtn
     
     #Every time, we want to start with all of the data to filter through
     #joined.data <- joined.data.original
@@ -298,17 +298,17 @@ function(input, output, session) {
     #only want to do this if they clicked on a country
     if(length(name) != 0){
       #Read in all of the inputs, but isolated
-      modifier <- isolate(input$pieChart)
-      dataSet <- isolate(input$dataSet)
-      regionChoice <- isolate(input$regionChoice)
-      textileName <- isolate(input$textileName)
-      colors <- isolate(input$colors)
-      patterns <- isolate(input$patterns)
-      process <- isolate(input$process)
-      fibers <- isolate(input$fibers)
-      geography <- isolate(input$geography)
-      qualities <- isolate(input$qualities)
-      # inferredQualities <- isolate(input$inferredQualities)
+      modifier <- input$pieChart
+      dataSet <- input$dataSet
+      regionChoice <- input$regionChoice
+      textileName <- input$textileName
+      colors <- input$colors
+      patterns <- input$patterns
+      process <- input$process
+      fibers <- input$fibers
+      geography <- input$geography
+      qualities <- input$qualities
+      # inferredQualities <- input$inferredQualities
       
       #Again, reusing the original data
       #joined.data <- joined.data.original
@@ -365,7 +365,7 @@ function(input, output, session) {
           filter(company == dataSet)
       }
       
-      if(isolate(input$dataType) == "Quantity"){ #If they're interested in quantity
+      if(input$dataType == "Quantity"){ #If they're interested in quantity
         if(nrow(pie.data) != 0){ #check to see if there are values left to publish
           pie.data %>% 
             ggplot(aes(x="",
@@ -432,23 +432,23 @@ function(input, output, session) {
     
     
     if(!is.null(name) && length(name) != 0){
-      modifier <- isolate(input$barChart)
+      modifier <- input$barChart
       modifierObj <- paste("`", names(modVec)[modVec == modifier], "`", sep = "")
-      dataSet <- isolate(input$dataSet)
-      dataType <- isolate(input$dataType)
-      regionChoice <- isolate(input$regionChoice)
-      textileName <- isolate(input$textileName)
-      colors <- isolate(input$colors)
-      patterns <- isolate(input$patterns)
-      process <- isolate(input$process)
-      fibers <- isolate(input$fibers)
-      geography <- isolate(input$geography)
-      qualities <- isolate(input$qualities)
-      # inferredQualities <- isolate(input$inferredQualities)
-      #orig_yr <- isolate(input$orig_yr)
-      year <- isolate(input$year)
-      facet <- isolate(input$facet)
-      #dest_yr <- isolate(input$dest_yr)
+      dataSet <- input$dataSet
+      dataType <- input$dataType
+      regionChoice <- input$regionChoice
+      textileName <- input$textileName
+      colors <- input$colors
+      patterns <- input$patterns
+      process <- input$process
+      fibers <- input$fibers
+      geography <- input$geography
+      qualities <- input$qualities
+      # inferredQualities <- input$inferredQualities
+      #orig_yr <- input$orig_yr
+      year <- input$year
+      facet <- input$facet
+      #dest_yr <- input$dest_yr
       
       
       
