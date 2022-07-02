@@ -1,15 +1,5 @@
-# @Middlebury College - 2021
-# Interactive textile explorer
-# Originally authored by Ev Berger-Wolf, Camryn Kluetmeier, Jason Rickenbacker, and Nicholas Sliter
-# Under the instruction of Prof. Carrie Anderson at Middlebury College
-# Code maintained and extended by Nicholas Sliter
-
-
-
-
-#Project initial
+# libraries
 library(shiny)
-library(shinythemes)
 library(readxl)
 library(rgdal)
 library(tidyverse)
@@ -23,33 +13,6 @@ library(shinyWidgets)
 
 #source to function file
 source('functions.R')
-
-
-#define constants:
-#reference with CONSTANTS["NAME"]
-CONSTANTS <- c(
-  
-  
-  "SHINY_THEME" = "sandstone",
-  "COLOR_THEME" = "magma",
-  "COLORS" = toString(c("white","yellow","red","blue","purple","green","black", "brown", "grey", "silver", "gold"))
-  
-  
-  
-)
-
-
-#> strsplit((CONSTANTS["COLORS"]), ",")[[1]]
-
-
-# Create zoom locations
-latLongZoom.original <- data.frame("Area" = c("World", "Europe", "Africa",
-                                              "Middle East", "Pacfic Islands", "Asia"),
-                                   "Lat" = c(30, 49.8, -6, 27, 0, 32),
-                                   "Long" = c(53, 15.47, 30, 72.5, 116, 115),
-                                   "Magnify" = c(2, 4.25, 2.5, 4, 4, 3.25))
-
-latLongZoom <- latLongZoom.original
 
 #Read in the data
 joined.data.original <- read_csv("joined.csv")
@@ -67,6 +30,17 @@ joined.data <- joined.data.original
  #                                              levels = c("Inexpensive", "Mid-Range", "Expensive"))
 map.data <- map.data.original
 
+# Create zoom locations
+latLongZoom.original <- data.frame("Area" = c("World", "Europe", "Africa",
+                                              "Middle East", "Pacfic Islands", "Asia"),
+                                   "Lat" = c(30, 49.8, -6, 27, 0, 32),
+                                   "Long" = c(53, 15.47, 30, 72.5, 116, 115),
+                                   "Magnify" = c(2, 4.25, 2.5, 4, 4, 3.25))
+
+latLongZoom <- latLongZoom.original
+
+# modVec
+
 #Creating a modifier choice vector
 modVec <- c("Textile Name" = "textile_name",
             #"Color" = "colorGroup",
@@ -78,124 +52,10 @@ modVec <- c("Textile Name" = "textile_name",
             "Geography" = "textile_geography_arch",
             "Quality" = "textile_quality_arch")
 
+            
+# Server function
 
-#Creating the UI
-ui <- fluidPage(theme = shinytheme("sandstone"),
-                titlePanel("Interactive Textile Explorer"),
-                sidebarPanel(#All inputs will go in this sidebarPanel
-                  h4("Explore different facets of the data by selecting inputs below:"),
-                  radioButtons(inputId = "dataSet",
-                               label = "Choose company of interest",
-                               # choices = c("WIC", "VOC", "Both"),
-                               choiceNames = c("All Companies", "East India Company (VOC)", "West India Company (WIC)"),
-                               choiceValues = c("Both", "VOC", "WIC"),
-                               selected = "Both"),
-                  radioButtons(inputId = "regionChoice",
-                               label = "Select one",
-                               choices = c("Origin", "Destination"),
-                               selected = "Origin"),
-                  radioButtons(inputId = "dataType",
-                               label = "Choose data type of interest",
-                               choices = c("Quantity", "Value"),
-                               selected = "Quantity"),
-                  selectizeInput(inputId = "zoomTo",
-                                 label = "Zoom to:",
-                                 choices = levels(factor(latLongZoom$Area)),
-                                 selected = "World"),
-                  
-                  # selectizeInput(inputId = "textileName",
-                  #                label = "Choose textile(s) of interest",
-                  #                choices = levels(factor(joined.data$textile_name)),
-                  #                multiple = TRUE),
-                  # # uiOutput(outputId = 'filtered_inputs'),
-                  # selectizeInput(inputId = "colors",
-                  #                label = "Choose color(s) of interest",
-                  #                #choices = levels(factor(joined.data$colorGroup)),
-                  #                #choices = levels(factor(joined.data$colorList)),
-                  #                
-                  #                choices = {
-                  #                  strsplit(CONSTANTS['COLORS'], ", ")[[1]]
-                  #                  
-                  #                  },
-                                 
-                                 
-                                 
-                  #               multiple = TRUE),
-                  uiOutput(outputId = "TextileName"),
-                  uiOutput(outputId = "Colors"),
-                  uiOutput(outputId = "Pattern"),
-                  uiOutput(outputId = "Process"),
-                  uiOutput(outputId = "Fibers"),
-                  # uiOutput(outputId = "InferredQualities"),
-                  uiOutput(outputId = "Geography"),
-                  uiOutput(outputId = "Qualities"),
-                  uiOutput(outputId = "Year"),
-
-                  # selectizeInput(inputId = "patterns",
-                  #                label = "Choose pattern(s) of interest",
-                  #                choices = levels(factor(joined.data$textile_pattern_arch)),
-                  #                multiple = TRUE),
-                  # selectizeInput(inputId = "process",
-                  #                label = "Choose process(es) of interest",
-                  #                choices = levels(factor(joined.data$textile_process_arch)),
-                  #                multiple = TRUE),
-                  # selectizeInput(inputId = "fibers",
-                  #                label = "Choose fiber(s) of interest",
-                  #                choices = levels(factor(joined.data$textile_fiber_arch)),
-                  #                multiple = TRUE),
-                  # selectizeInput(inputId = "inferredQualities",
-                  #                label = "Choose value range(s) of interest",
-                  #                choices = levels(factor(joined.data$textile_quality_inferred)),
-                  #                multiple = TRUE),
-                  # selectizeInput(inputId = "geography",
-                  #                label = "Choose geography of interest",
-                  #                choices = levels(factor(joined.data$textile_geography_arch)),
-                  #                multiple = TRUE),
-                  # selectizeInput(inputId = "qualities",
-                  #                label = "Choose quality(s) of interest",
-                  #                choices = levels(factor(joined.data$textile_quality_arch)),
-                  #                multiple = TRUE),
-                  # selectizeInput(inputId = "year",
-                  #                label = "Year:",
-                  #                choices = levels(factor(c(joined.data$orig_yr,joined.data$dest_yr))),
-                  #                multiple = TRUE),
-                  actionButton(inputId = "updateBtn",
-                               label = "Click to update map!"),
-                  br(), br(),
-                  actionButton(inputId = 'table_updateBtn',
-                               label = 'Click to update table!'),
-                  br(), br(), #The inputs for the pie chart and bar chart
-                  selectInput(inputId = "pieChart",
-                              label = "Choose a modifier for the pie chart:",
-                              choices = modVec,
-                              selected = "textile_name"),
-                  checkboxInput(inputId = "omitNAs",
-                                label = "Omit NAs in charts"),
-                  selectInput(inputId = "barChart",
-                              label = "Choose a modifier for the bar chart:",
-                              choices = modVec,
-                              selected = "textile_name"),
-                  checkboxInput(inputId = "facet",
-                                label = "Facet by modifier"),
-                  actionButton(inputId = 'graph_updateBtn',
-                               label = 'Click to update graphs!')
-                ),
-                mainPanel(
-                  tabsetPanel(#All of the outputs go here (map/graphs, data tables)
-                    tabPanel(title = "Map Explorer",
-                             leafletOutput(outputId = "countriesMap"),
-                             plotOutput(outputId = "pieChart"),
-                             plotOutput(outputId = "barChart") #outputId = 
-                    ),
-                    tabPanel(title = "Table Explorer",
-                             dataTableOutput('update_inputs'),
-                             downloadButton("downloadData", "Download Table") #download button
-                    )
-                  )
-                )
-)
-
-server <- function(input, output, session) {
+function(input, output, session) {
 
   
   
@@ -731,6 +591,4 @@ server <- function(input, output, session) {
     }
     
   })
-}
-
-shinyApp(ui, server)
+} # function(input, output, session) {
