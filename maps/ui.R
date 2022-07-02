@@ -78,12 +78,7 @@ fluidPage(theme = shinytheme("sandstone"),
                   #                label = "Year:",
                   #                choices = levels(factor(c(joined.data$orig_yr,joined.data$dest_yr))),
                   #                multiple = TRUE),
-                  actionButton(inputId = "updateBtn",
-                               label = "Click to update map!"),
-                  br(), br(),
-                  actionButton(inputId = 'table_updateBtn',
-                               label = 'Click to update table!'),
-                  br(), br(), #The inputs for the pie chart and bar chart
+                  #The inputs for the pie chart and bar chart
                   selectInput(inputId = "pieChart",
                               label = "Choose a modifier for the pie chart:",
                               choices = modVec,
@@ -95,9 +90,7 @@ fluidPage(theme = shinytheme("sandstone"),
                               choices = modVec,
                               selected = "textile_name"),
                   checkboxInput(inputId = "facet",
-                                label = "Facet by modifier"),
-                  actionButton(inputId = 'graph_updateBtn',
-                               label = 'Click to update graphs!')
+                                label = "Facet by modifier")
                 ),
                 mainPanel(
                   tabsetPanel(#All of the outputs go here (map/graphs, data tables)

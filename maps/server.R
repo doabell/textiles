@@ -20,9 +20,6 @@ function(input, output, session) {
   
   
   reactive_data <- reactive({
-    input$updateBtn
-    input$graph_updateBtn
-    input$table_updateBtn
     
     #reading in all of the inputs, isolating them
     dataSet <- input$dataSet
@@ -38,8 +35,6 @@ function(input, output, session) {
     # inferredQualities <- isolate(input$inferredQualities)
     area <- input$zoomTo
     input
-    # table_update <- isolate(input$table_updateBtn)
-    # graph_update <- isolate(input$graph_updateBtn)
     
     
     data <- joined.data
@@ -215,15 +210,14 @@ function(input, output, session) {
   
   
   #creates table
-  output$update_inputs <- renderDataTable(searchDelay = 1000,{
-    input$table_updateBtn
+  output$update_inputs <- renderDataTable(searchDelay = 1000,
     #isolate(filter_by_inputs(joined.data.original,isolate(input)))}) #filters the data for what has been searched
-    reactive_data()})
+    reactive_data())
   
   # Downloadable .xls of table dataset
   output$downloadData <- downloadHandler(
     filename = function() {
-      paste(input$table_updateBtn, ".xls", sep = "")
+      paste(input$dataSet, ".xls", sep = "")
     },
     content = function(file) {
       write_excel_csv(
@@ -236,8 +230,6 @@ function(input, output, session) {
 
   #The map of countries to be rendered
   output$countriesMap <- renderLeaflet({
-    #We only want it to update when the updateBtn is pushed
-    input$updateBtn
     
     #reading in all of the inputs, isolating them
     dataSet <- input$dataSet
@@ -252,8 +244,6 @@ function(input, output, session) {
     qualities <- input$qualities
     # inferredQualities <- input$inferredQualities
     area <- input$zoomTo
-    table_update <- input$table_updateBtn
-    graph_update <- input$graph_updateBtn
     
     #Every time, we want to start with all of the data to filter through
     #joined.data <- joined.data.original
@@ -291,8 +281,6 @@ function(input, output, session) {
   
   #Used to render the plot for pie chart
   output$pieChart <- renderPlot({
-    input$updateBtn
-    input$graph_updateBtn
     name <- input$countriesMap_shape_click$id
     
     #only want to do this if they clicked on a country
@@ -421,8 +409,6 @@ function(input, output, session) {
   #Rendering the bar chart - this works nearly the exact same way as the pie chart
   #except when it is graphing the outputs, it is doing so with a bar chart instead of a pie chart
   output$barChart <- renderPlot({
-    input$updateBtn
-    input$graph_updateBtn
     name <- input$countriesMap_shape_click$id
     
     values <- c()
