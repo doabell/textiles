@@ -1,6 +1,15 @@
 # constants
 # https://shiny.rstudio.com/articles/scoping.html
 
+
+# @Middlebury College - 2021
+# Interactive textile explorer
+# Originally authored by Ev Berger-Wolf, Camryn Kluetmeier, Jason Rickenbacker, and Nicholas Sliter
+# Under the instruction of Prof. Carrie Anderson at Middlebury College
+# Code maintained and extended by Nicholas Sliter
+# Imported from commit 66a578f
+# https://github.com/Nicholas-Sliter/textile_map/commit/66a578f89572385c421833fcc2cd7f0f71260795
+
 # libraries
 library(shiny)
 library(readxl)
