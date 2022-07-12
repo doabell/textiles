@@ -1,14 +1,8 @@
 ##Importing Libraries
 library(shiny)
-library(readxl)
 library(tidyverse)
-library(ggplot2)
-library(leaflet)
-library(geojsonio)
-library(ggthemes)
-library(dplyr)
-library(forcats)
 library(magrittr)
+library(plotly)
 
 wicvoc <- readRDS("week4.rds")
 # wicvoc <- read_csv("final_data.csv")
@@ -48,7 +42,7 @@ ui <- fluidPage(
   ),
   mainPanel(
     tabsetPanel( ##Placing our actual graph, as well as the other tabs
-      tabPanel("Plot",plotOutput("mainGraph")),
+      tabPanel("Plot",plotlyOutput("mainGraph")),
       tabPanel("Description",textOutput("description"),tags$head(tags$style("#description{ font-size:12px; font-style:italic; 
  height: 500px; max-width: 600px; background: ghostwhite;overflow-wrap: word-wrap;}")))##Sets the css for the description page
     )
@@ -93,8 +87,8 @@ server <- function(input, output, session) {
       )
     }#we make the drop down options only what applies to the selected textile
   })
-    
-  output$mainGraph <- renderPlot({
+  
+  output$mainGraph <- renderPlotly({
     textile1.data <- filter(wicvoc, textile_name == input$textileName1) #First, I split up the data into two parts,
     textile2.data <- textile1.data
     if(!is.null(input$textile1mods)) { #if no modifiers are selected for textile 1, I don't want to filter it at all
@@ -115,6 +109,7 @@ server <- function(input, output, session) {
       #}
       textile2.data %<>% mutate(textile_name=paste(textile_name, paste(input$textile2mods, collapse =', '), sep = ": "))#I use string manipulation such that textile_name reflects what we've filtered for when textile_name appears on the legend
     }###########################################################################################################################################################################################################################################
+    
     rbind(textile1.data, textile2.data)%>% #Concatenates the data for textile 1 and 2, which has already been filtered for modifiers
       filter(!is.na(total_value)) %>% #if we don't have value information, we can't include the textile on our graph
       mutate(total_value=as.numeric(total_value))%>%#Converts guldens to numeric
@@ -126,9 +121,10 @@ server <- function(input, output, session) {
            y=switch(input$yAxisChoice,"total_value"="Total Value (Dutch Gulders)","price_per_piece"="Price Per Piece (Dutch Gulders)"),
            fill="Textile")+ #Note the use of switch in the two lines above. This is so that we have nice label titles for each selection of our axises.
       theme_bw()+
-      theme(axis.text.x=element_text(angle=90))
+      theme(axis.text.x=element_text(angle=90)) -> mainggplot
     
-  })
+      ggplotly(mainggplot)
+    })
   
   output$downloadData <- downloadHandler(filename = "Modified_Textile_Data.csv",
                                          content = function(file){
