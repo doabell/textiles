@@ -72,6 +72,9 @@ server <- function(input, output, session) {
                   label=paste("Choose one modifier for", input$textileName1),
                   choices=modifiers
       )
+    } else {
+      # TODO fix bug where switching from baftas to illegible
+      # gives empty graph - reset modifiers or set them here
     }
     #we make the drop down options only what applies to the selected textile
   })
