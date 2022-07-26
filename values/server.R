@@ -5,8 +5,19 @@ function(input, output, session) {
 
   # Modifiers ####
   output$modifier1Choice <- renderUI({
-    wicvoc.filtered <- filter(wicvoc, textile_name == input$textileName) # I filter so that we're only looking at modifiers for the selected textile. This line is why this is written in the server; I need to know what was selected for the textile
-    modifiers <- setdiff(unique(c(wicvoc.filtered$textile_color_arch, wicvoc.filtered$textile_quality_arch)), c(NA))
+    current_textile <- filter(
+      wicvoc,
+      textile_name == input$textileName
+    )
+    modifiers <- setdiff(
+      unique(
+        c(
+          current_textile$textile_color_arch,
+          current_textile$textile_quality_arch
+        )
+      ),
+      c(NA)
+    )
     if (length(modifiers) != 0) {
       selectInput(
         inputId = "textile1mods",
@@ -22,8 +33,8 @@ function(input, output, session) {
   })
 
   output$modifier2Choice <- renderUI({ # Here, I create the modifier choice ui
-    wicvoc.filtered <- filter(wicvoc, textile_name == input$textileName) # I filter so that we're only looking at modifiers for the selected textile. This line is why this is written in the server; I need to know what was selected for the textile
-    modifiers <- setdiff(unique(c(wicvoc.filtered$textile_color_arch, wicvoc.filtered$textile_quality_arch)), c(NA))
+    current_textile <- filter(wicvoc, textile_name == input$textileName)
+    modifiers <- setdiff(unique(c(current_textile$textile_color_arch, current_textile$textile_quality_arch)), c(NA))
     if (length(modifiers) != 0) {
       selectInput(
         inputId = "textile2mods",
