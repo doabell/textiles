@@ -1,10 +1,15 @@
-##Importing Libraries
+# Libraries ####
+
 library(shiny)
 library(tidyverse)
 library(magrittr)
 library(plotly)
+library(readr)
+
+
+# Read data ####
 
 wicvoc <- readRDS("week4.rds")
-# wicvoc <- read_csv("final_data.csv")
+
+# make year discrete
 wicvoc$orig_yr <- factor(wicvoc$orig_yr)
-#This line makes year a discrete variable
