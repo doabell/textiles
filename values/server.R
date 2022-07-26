@@ -1,67 +1,6 @@
-##Importing Libraries
-library(shiny)
-library(tidyverse)
-library(magrittr)
-library(plotly)
-
-wicvoc <- readRDS("week4.rds")
-# wicvoc <- read_csv("final_data.csv")
-wicvoc$orig_yr <- factor(wicvoc$orig_yr) #This line makes year a discrete variable
-
-
-descript <- read_csv("TextileTermsList1.csv")
-
-##Front End Code
-ui <- fluidPage(
-  titlePanel("Textiles, Modifiers, and Value"),
-  
-  
-  ##Our selection inputs, such as textile 1, modifers, etc.
-  sidebarPanel(
-      ##Textile 1 Selection
-      selectInput(inputId="textileName1",
-                  label="Choose your textile",
-                  choices=sort(unique(wicvoc$textile_name))), ##unique() makes sure there are no duplicate options, sort() orders options alphabetically 
-      
-      ##This allows the user to choose a modifier for the first textile. The actual selection is created on server-side, since the relevant modifiers depend upon the selected textile
-      uiOutput("modifier1Choice"), 
-      
-      ##This allows the user to choose a modifier for the second textile. The actual selection is created on server-side, since the relevant modifiers depend upon the selected textile
-      uiOutput("modifier2Choice"),
-      
-      ##Selection for what variable should be on each axis
-      selectInput(inputId="xAxisChoice",
-                  label="Choose a category for your X axis",
-                  choices=c("Year"="orig_yr","Destination Port"="loc_dest","Origin Port"="loc_orig")),##This allows the user to choose a modifier for the first textile
-      selectInput(inputId="yAxisChoice",
-                  label="Choose a variable for your Y axis",
-                  choices =c("Total Value (Dutch Guldens)"="total_value","Price per Piece"="price_per_piece")),
-  
-      downloadButton("downloadData", "Download Current Data"),
-      downloadButton("downloadDatafull", "Download Complete Data"),
-  ),
-  mainPanel(
-    tabsetPanel( ##Placing our actual graph, as well as the other tabs
-      tabPanel("Plot",plotlyOutput("mainGraph")),
-      tabPanel("Description",textOutput("description"),tags$head(tags$style("#description{ font-size:12px; font-style:italic; 
- height: 500px; max-width: 600px; background: ghostwhite;overflow-wrap: word-wrap;}")))##Sets the css for the description page
-    )
-  ),
-  
-)
-
-
 ##Back End Code
-server <- function(input, output, session) {
+function(input, output, session) {
     options(scipen = 1000000)#Makes it so it doesn't use scientific notation
-  
-    output$summary <- renderText("Text")##Renders the text in summary
-    
-    output$description <- renderText({##Renders the text in the description panel
-      de <- descript%>%filter(Term==input$textileName1)
-      paste(input$textileName1, ": ",toString(de$Description))
-    }
-    )
 
   output$modifier1Choice <- renderUI({ #Here, I create the modifier choice ui
     wicvoc.filtered <- filter(wicvoc, textile_name == input$textileName1) #I filter so that we're only looking at modifiers for the selected textile. This line is why this is written in the server; I need to know what was selected for the textile
@@ -131,7 +70,8 @@ server <- function(input, output, session) {
   
   output$downloadData <- downloadHandler(filename = "Modified_Textile_Data.csv",
                                          content = function(file){
-                                           write.csv(textile1.data, file)
+                                           filter(wicvoc, textile_name == input$textileName1) %>%
+                                           write.csv(file)
                                          })
   
   output$downloadDatafull <- downloadHandler(filename = "Textile_Data.csv",
@@ -140,5 +80,3 @@ server <- function(input, output, session) {
                                              })
   
 }
-
-shinyApp(ui, server)
