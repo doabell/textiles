@@ -105,9 +105,9 @@ week4 %<>%
     # calculate per-piece prices
     price_per_piece = (total_value / textile_quantity),
     # Unify Case
-    textile_color_arch = str_to_title(textile_color_arch),
-    textile_pattern_arch = str_to_title(textile_pattern_arch),
-    total_value_currency = str_to_title(total_value_currency)
+    textile_color_arch = str_to_lower(textile_color_arch),
+    textile_pattern_arch = str_to_lower(textile_pattern_arch),
+    total_value_currency = str_to_lower(total_value_currency)
   )
 
 # select columns
