@@ -3,66 +3,57 @@ function(input, output, session) {
   # No scientific notation
   options(scipen = 1000000)
 
-  # Current textile
+  # When user selects a textile
+  current_textile <- eventReactive(
+    input$textileName,
+    {
+      # Data on current textile
+      wicvoc %>%
+        filter(textile_name == input$textileName)
+    }
+  )
+  modifiers_list <- eventReactive(
+    input$textileName,
+      # List all modifiers for this textile
+      { current_textile() %>%
+        # Columns defined in global.R
+        select(all_of(modvec)) %>%
+        sapply(unique)%>%
+        reduce(union) %>%
+        setdiff(c(NA))
+    }
+  )
 
   # Modifiers ####
   output$modifier1Choice <- renderUI({
-    # Grab current textile
-    current_textile <<- filter(
-      wicvoc,
-      textile_name == input$textileName
-    )
-
-    # List all modifiers for this textile
-    modifiers <<- current_textile %>%
-      # Columns defined in global.R
-      select(all_of(modvec)) %>%
-      sapply(unique)
-
-    modifiers_list <<- modifiers %>%
-      reduce(union) %>%
-      setdiff(c(NA))
-
-    if (length(modifiers_list) != 0) {
+    if (length(modifiers_list()) != 0) {
       selectInput(
         inputId = "textile1mods",
         multiple = TRUE,
         label = paste("Choose one modifier for", input$textileName),
-        choices = modifiers_list
+        choices = modifiers_list()
       )
-    } else {
-      # TODO fix bug where switching from baftas to illegible
-      # gives empty graph - reset modifiers or set them here
     }
   })
 
   output$modifier2Choice <- renderUI({
-    if (length(modifiers_list) != 0) {
+    if (length(modifiers_list()) != 0) {
       selectInput(
         inputId = "textile2mods",
         multiple = TRUE,
         label = paste("Choose another modifier for", input$textileName),
-        choices = modifiers_list
+        choices = modifiers_list()
       )
-    } else {
-      # TODO fix bug where switching from baftas to illegible
-      # gives empty graph - reset modifiers or set them here
     }
   })
 
   # Main graph ####
   output$mainGraph <- renderPlotly({
 
-    # Grab current textile again for reactiveness
-    current_textile <<- filter(
-      wicvoc,
-      textile_name == input$textileName
-    )
-
     # Modifier 1
     # if (!is.null(input$textile1mods)) {
     # Grab all rows with modifier
-    mod1data <- current_textile %>%
+    mod1data <- current_textile() %>%
       rowwise() %>%
       # AND: all(x %in% y)
       # works when input is NULL
@@ -81,7 +72,7 @@ function(input, output, session) {
     # Modifier 2
     # if (!is.null(input$textile2mods)) {
     # Grab all rows with modifier
-    mod2data <- current_textile %>%
+    mod2data <- current_textile() %>%
       rowwise() %>%
       # AND: all(x %in% y)
       # works when input is NULL
@@ -100,7 +91,7 @@ function(input, output, session) {
     # Merge two data frames
     # If both null: copy
     if (is.null(input$textile1mods) & is.null(input$textile2mods)) {
-      plot_data <- current_textile
+      plot_data <- current_textile()
     } else {
       plot_data <- bind_rows(mod1data, mod2data) %>%
         # Plot what we have data on
@@ -153,11 +144,13 @@ function(input, output, session) {
       theme_bw() +
       theme(axis.text.x = element_text(angle = 80)) +
       # Title
-      ggtitle(paste0("Values for ",
-                    input$textileName,
-                    " (unit: ",
-                    unitvec[[input$textileName]],
-                    ")"))
+      ggtitle(paste0(
+        "Values for ",
+        input$textileName,
+        " (unit: ",
+        unitvec[[input$textileName]],
+        ")"
+      ))
 
     ggplotly(mainggplot) %>%
       layout(font = list(family = "Lato"))
@@ -173,7 +166,7 @@ function(input, output, session) {
         paste0("_textile_data.csv")
     },
     content = function(file) {
-      current_textile %>%
+      current_textile() %>%
         write_csv(file)
     },
     contentType = "text/csv"
