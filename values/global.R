@@ -9,9 +9,7 @@ library(readr)
 
 # Read data ####
 wicvoc <- readRDS("week4.rds")
-
-# Make year discrete
-wicvoc$orig_yr <- factor(wicvoc$orig_yr)
+unitvec <- readRDS("unitvec.rds")
 
 # Modifier column names
 modvec <- c(

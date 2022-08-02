@@ -89,7 +89,7 @@ week4 %<>%
 
 # Quantity ####
 # deal with ells.
-# other units dealt with in units.R
+# other units dealt with below
 week4 %<>%
   mutate(
     textile_quantity = case_when(
@@ -110,6 +110,22 @@ week4 %<>%
     total_value_currency = str_to_lower(total_value_currency)
   )
 
+# Mode as unit
+# Unit that appears the most frequent for one textile
+# Because unit should be the same for one textile
+
+# Function from https://stackoverflow.com/questions/2547402/how-to-find-the-statistical-mode
+Mode <- function(x) {
+  ux <- unique(na.omit(x))
+  ux[which.max(tabulate(match(x, ux)))]
+}
+
+unitvec <- week4 %>%
+  group_by(textile_name) %>%
+  summarize(textile_unit = Mode(textile_unit)) %>%
+  pull(var = textile_unit, name = textile_name)
+
+# Export ####
 # select columns
 week4 %<>%
   dplyr::select(
@@ -122,6 +138,11 @@ week4 %<>%
     price_per_piece
   )
 
+# Make year discrete
+week4$orig_yr <- factor(week4$orig_yr)
+
 # Export to .rds
 # no compression, space is cheaper than time
 write_rds(week4, "week4.rds")
+
+write_rds(unitvec, "unitvec.rds")

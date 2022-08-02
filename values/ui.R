@@ -44,7 +44,7 @@ fluidPage(
       choices = c(
         "Quantity Shipped" = "textile_quantity",
         "Total Value (Dutch Guldens)" = "total_value",
-        "Price per Piece" = "price_per_piece"
+        "Price per Unit" = "price_per_piece"
       )
     ),
 

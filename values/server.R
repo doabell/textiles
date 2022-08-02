@@ -52,7 +52,7 @@ function(input, output, session) {
 
   # Main graph ####
   output$mainGraph <- renderPlotly({
-    
+
     # Grab current textile again for reactiveness
     current_textile <<- filter(
       wicvoc,
@@ -61,68 +61,70 @@ function(input, output, session) {
 
     # Modifier 1
     # if (!is.null(input$textile1mods)) {
-      # Grab all rows with modifier
-      mod1data <- current_textile %>%
-        rowwise() %>%
-        # AND: all(x %in% y)
-        # works when input is NULL
-        # OR: any(x %in% y)
-        # TODO OR, does not work if input is NULL
-        filter(all(input$textile1mods %in% c_across(
-          all_of(modvec)
-        ))) %>%
-        # Rename
-        mutate(textile_name = paste0(
-          textile_name, ": ",
-          toString(input$textile1mods)
-        ))
+    # Grab all rows with modifier
+    mod1data <- current_textile %>%
+      rowwise() %>%
+      # AND: all(x %in% y)
+      # works when input is NULL
+      # OR: any(x %in% y)
+      # TODO OR, does not work if input is NULL
+      filter(all(input$textile1mods %in% c_across(
+        all_of(modvec)
+      ))) %>%
+      # Rename
+      mutate(textile_name = paste0(
+        textile_name, ": ",
+        toString(input$textile1mods)
+      ))
     # }
-    
+
     # Modifier 2
     # if (!is.null(input$textile2mods)) {
-      # Grab all rows with modifier
-      mod2data <- current_textile %>%
-        rowwise() %>%
-        # AND: all(x %in% y)
-        # works when input is NULL
-        # OR: any(x %in% y)
-        # TODO OR, does not work if input is NULL
-        filter(all(input$textile2mods %in% c_across(
-          all_of(modvec)
-        ))) %>%
-        # Rename
-        mutate(textile_name = paste0(
-          textile_name, ": ",
-          toString(input$textile2mods)
-        ))
+    # Grab all rows with modifier
+    mod2data <- current_textile %>%
+      rowwise() %>%
+      # AND: all(x %in% y)
+      # works when input is NULL
+      # OR: any(x %in% y)
+      # TODO OR, does not work if input is NULL
+      filter(all(input$textile2mods %in% c_across(
+        all_of(modvec)
+      ))) %>%
+      # Rename
+      mutate(textile_name = paste0(
+        textile_name, ": ",
+        toString(input$textile2mods)
+      ))
     # }
-    
+
     # Merge two data frames
     # If both null: copy
     if (is.null(input$textile1mods) & is.null(input$textile2mods)) {
       plot_data <- current_textile
-    } else{
+    } else {
       plot_data <- bind_rows(mod1data, mod2data) %>%
         # Plot what we have data on
         filter(!is.na(input$yAxisChoice))
     }
-    
+
 
     # Aggregate y by x
     # y: quantity shipped (sum)
     # y: total value (sum)
     # y: price per piece (average)
     # TODO deal with units
-    
+
     plot_data %<>%
       group_by(textile_name, !!sym(input$xAxisChoice)) %>%
-      summarise(price_per_piece = mean(price_per_piece),
-                textile_quantity = sum(textile_quantity),
-                total_value = sum(total_value))
-    
+      summarise(
+        price_per_piece = mean(price_per_piece),
+        textile_quantity = sum(textile_quantity),
+        total_value = sum(total_value)
+      )
+
     # Table for debugging
     # output$table <- renderTable(plot_data)
-    
+
     # Finally plot
     mainggplot <- plot_data %>%
       ggplot() +
@@ -140,7 +142,11 @@ function(input, output, session) {
         y = switch(input$yAxisChoice,
           "textile_quantity" = "Quantity Shipped",
           "total_value" = "Total Value (Dutch Gulders)",
-          "price_per_piece" = "Price Per Piece (Dutch Gulders)"
+          "price_per_piece" = paste(
+            "Price Per",
+            unitvec[[input$textileName]],
+            "(Dutch Gulders)"
+          )
         ),
         fill = "Textile"
       ) +
