@@ -117,7 +117,7 @@ function(input, output, session) {
     plot_data %<>%
       group_by(textile_name, !!sym(input$xAxisChoice)) %>%
       summarise(
-        price_per_piece = mean(price_per_piece),
+        price_per_unit = mean(price_per_unit),
         textile_quantity = sum(textile_quantity),
         total_value = sum(total_value)
       )
@@ -142,7 +142,7 @@ function(input, output, session) {
         y = switch(input$yAxisChoice,
           "textile_quantity" = "Quantity Shipped",
           "total_value" = "Total Value (Dutch Gulders)",
-          "price_per_piece" = paste(
+          "price_per_unit" = paste(
             "Price Per",
             unitvec[[input$textileName]],
             "(Dutch Gulders)"
@@ -153,7 +153,11 @@ function(input, output, session) {
       theme_bw() +
       theme(axis.text.x = element_text(angle = 80)) +
       # Title
-      ggtitle(paste("Values for", input$textileName))
+      ggtitle(paste0("Values for ",
+                    input$textileName,
+                    " (unit: ",
+                    unitvec[[input$textileName]],
+                    ")"))
 
     ggplotly(mainggplot) %>%
       layout(font = list(family = "Lato"))

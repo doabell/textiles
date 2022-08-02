@@ -102,8 +102,8 @@ week4 %<>%
     ),
     # back to NA if 0
     total_value = na_if(total_value, 0),
-    # calculate per-piece prices
-    price_per_piece = (total_value / textile_quantity),
+    # calculate per-unit prices
+    price_per_unit = (total_value / textile_quantity),
     # Unify Case
     textile_color_arch = str_to_lower(textile_color_arch),
     textile_pattern_arch = str_to_lower(textile_pattern_arch),
@@ -135,7 +135,7 @@ week4 %<>%
     loc_dest,
     starts_with("textile"),
     total_value,
-    price_per_piece
+    price_per_unit
   )
 
 # Make year discrete
