@@ -1,4 +1,4 @@
-# Data cleanup ####
+# Data cleanup
 
 # libraries
 library(tidyverse)
@@ -11,7 +11,7 @@ week4 <- read_excel("WICVOCDataAll_080222.xlsx",
   guess_max = 20000
 )
 
-# clean up
+# Clean up ####
 # numbers to numeric
 week4 %<>%
   mutate(
@@ -64,9 +64,9 @@ week4 %<>%
     els_per_ps = parse_number(els_per_ps)
   )
 
-# currency
+# Currency ####
 # 1 Indian Guilder = 0.7 Dutch Guilder
-# TODO assume Dutch when it only says "guilders"
+# It's Dutch when it only says "guilders"
 week4 %<>%
   mutate(
     total_value = if_else(
@@ -76,7 +76,7 @@ week4 %<>%
     )
   )
 
-# geo
+# Geo ####
 # assumes "Java" is "JavaNW" as nothing else is
 week4 %<>%
   mutate(
@@ -87,9 +87,9 @@ week4 %<>%
     )
   )
 
-# quantity
-# deal with non-ps units
-# TODO other units to deal with
+# Quantity ####
+# deal with ells.
+# other units dealt with in units.R
 week4 %<>%
   mutate(
     textile_quantity = case_when(
