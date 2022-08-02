@@ -52,6 +52,12 @@ function(input, output, session) {
 
   # Main graph ####
   output$mainGraph <- renderPlotly({
+    
+    # Grab current textile again for reactiveness
+    current_textile <<- filter(
+      wicvoc,
+      textile_name == input$textileName
+    )
 
     # Modifier 1
     # if (!is.null(input$textile1mods)) {
@@ -137,7 +143,7 @@ function(input, output, session) {
           "price_per_piece" = "Price Per Piece (Dutch Gulders)"
         ),
         fill = "Textile"
-      ) + # Note the use of switch in the two lines above. This is so that we have nice label titles for each selection of our axises.
+      ) +
       theme_bw() +
       theme(axis.text.x = element_text(angle = 80)) +
       # Title
