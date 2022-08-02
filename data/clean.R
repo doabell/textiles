@@ -7,7 +7,7 @@ library(readxl)
 library(readr)
 
 # read
-week4 <- read_excel("WICVOCDataAll_072622.xlsx",
+week4 <- read_excel("WICVOCDataAll_080222.xlsx",
   guess_max = 20000
 )
 
