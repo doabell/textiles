@@ -4,19 +4,23 @@ function(input, output, session) {
   options(scipen = 1000000)
 
   # When user selects a textile
+  # Mutate data on current textile
+  # Call with current_textile()
   current_textile <- eventReactive(
     input$textileName,
     {
-      # Data on current textile
       wicvoc %>%
         filter(textile_name == input$textileName)
     }
   )
+  
+  # When user selects a textile
+  # List all modifiers for this textile
+  # Call with modifiers_list()
+  # Modifier columns `modvec` defined in global.R
   modifiers_list <- eventReactive(
     input$textileName,
-      # List all modifiers for this textile
       { current_textile() %>%
-        # Columns defined in global.R
         select(all_of(modvec)) %>%
         sapply(unique)%>%
         reduce(union) %>%
@@ -24,7 +28,7 @@ function(input, output, session) {
     }
   )
 
-  # Modifiers ####
+  # Modifier choice UIs ####
   output$modifier1Choice <- renderUI({
     if (length(modifiers_list()) != 0) {
       selectInput(
@@ -58,7 +62,7 @@ function(input, output, session) {
       # AND: all(x %in% y)
       # works when input is NULL
       # OR: any(x %in% y)
-      # TODO OR, does not work if input is NULL
+      # TODO OR does not work if input is NULL
       filter(all(input$textile1mods %in% c_across(
         all_of(modvec)
       ))) %>%
@@ -91,7 +95,9 @@ function(input, output, session) {
     # Merge two data frames
     # If both null: copy
     if (is.null(input$textile1mods) & is.null(input$textile2mods)) {
-      plot_data <- current_textile()
+      plot_data <- current_textile() %>%
+        # Plot what we have data on
+        filter(!is.na(input$yAxisChoice))
     } else {
       plot_data <- bind_rows(mod1data, mod2data) %>%
         # Plot what we have data on
@@ -103,8 +109,6 @@ function(input, output, session) {
     # y: quantity shipped (sum)
     # y: total value (sum)
     # y: price per piece (average)
-    # TODO deal with units
-
     plot_data %<>%
       group_by(textile_name, !!sym(input$xAxisChoice)) %>%
       summarise(
@@ -152,6 +156,7 @@ function(input, output, session) {
         ")"
       ))
 
+    # Make interactive
     ggplotly(mainggplot) %>%
       layout(font = list(family = "Lato"))
   })
