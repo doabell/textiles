@@ -3,75 +3,121 @@ function(input, output, session) {
   # No scientific notation
   options(scipen = 1000000)
 
+  # Current textile
+
   # Modifiers ####
   output$modifier1Choice <- renderUI({
-    current_textile <- filter(
+    # Grab current textile
+    current_textile <<- filter(
       wicvoc,
       textile_name == input$textileName
     )
-    modifiers <- setdiff(
-      unique(
-        c(
-          current_textile$textile_color_arch,
-          current_textile$textile_quality_arch
-        )
-      ),
-      c(NA)
-    )
-    if (length(modifiers) != 0) {
+
+    # List all modifiers for this textile
+    modifiers <<- current_textile %>%
+      # Columns defined in global.R
+      select(all_of(modvec)) %>%
+      sapply(unique)
+
+    modifiers_list <<- modifiers %>%
+      reduce(union) %>%
+      setdiff(c(NA))
+
+    if (length(modifiers_list) != 0) {
       selectInput(
         inputId = "textile1mods",
         multiple = TRUE,
         label = paste("Choose one modifier for", input$textileName),
-        choices = modifiers
+        choices = modifiers_list
       )
     } else {
       # TODO fix bug where switching from baftas to illegible
       # gives empty graph - reset modifiers or set them here
     }
-    # we make the drop down options only what applies to the selected textile
   })
 
-  output$modifier2Choice <- renderUI({ # Here, I create the modifier choice ui
-    current_textile <- filter(wicvoc, textile_name == input$textileName)
-    modifiers <- setdiff(unique(c(current_textile$textile_color_arch, current_textile$textile_quality_arch)), c(NA))
-    if (length(modifiers) != 0) {
+  output$modifier2Choice <- renderUI({
+    if (length(modifiers_list) != 0) {
       selectInput(
         inputId = "textile2mods",
         multiple = TRUE,
         label = paste("Choose another modifier for", input$textileName),
-        choices = modifiers
+        choices = modifiers_list
       )
-    } # we make the drop down options only what applies to the selected textile
+    } else {
+      # TODO fix bug where switching from baftas to illegible
+      # gives empty graph - reset modifiers or set them here
+    }
   })
 
   # Main graph ####
   output$mainGraph <- renderPlotly({
-    textile1.data <- filter(wicvoc, textile_name == input$textileName) # First, I split up the data into two parts,
-    textile2.data <- textile1.data
-    if (!is.null(input$textile1mods)) { # if no modifiers are selected for textile 1, I don't want to filter it at all
-      # if(length(intersect(unique(wicvoc$textile_color_arch), input$textile1mods)) != 0){ #If modifiers are selected, but none are color modifiers, we don't want to filter for colors
-      textile1.data %<>% filter(textile_color_arch %in% input$textile1mods | textile_quality_arch %in% input$textile1mods) # If we do select a color(s) as a modifier, we want to filter for that color(s)
-      # }
-      # if(length(intersect(unique(wicvoc$textile_quality_arch), input$textile1mods)) != 0){ #If modifiers are selected, but none are quality modifiers, we don't want to filter for quality
-      # textile1.data %<>% filter(textile_quality_arch %in% input$textile1mods) #If we do select a quality modifier, we want to filter for that
-      # }
-      textile1.data %<>% mutate(textile_name = paste(textile_name, paste(input$textile1mods, collapse = ", "), sep = ": ")) # I use string manipulation such that textile_name reflects what we've filtered for when textile_name appears on the legend
-    } #
-    if (!is.null(input$textile2mods)) { # if no modifiers are selected for textile 2, I don't want to filter it at all
-      # if(length(intersect(unique(wicvoc$textile_color_arch), input$textile2mods)) != 0){ #If modifiers are selected, but none are color modifiers, we don't want to filter for colors
-      textile2.data %<>% filter(textile_color_arch %in% input$textile2mods | textile_quality_arch %in% input$textile2mods) # If we do select a color(s) as a modifier, we want to filter for that color(s)
-      # }
-      # if(length(intersect(unique(wicvoc$textile_quality_arch), input$textile2mods)) != 0){ #If modifiers are selected, but none are quality modifiers, we don't want to filter for quality
-      # textile2.data %<>% filter(textile_quality_arch %in% input$textile2mods) #If we do select a quality modifier, we want to filter for that
-      # }
-      textile2.data %<>% mutate(textile_name = paste(textile_name, paste(input$textile2mods, collapse = ", "), sep = ": ")) # I use string manipulation such that textile_name reflects what we've filtered for when textile_name appears on the legend
-    } #
+    # Modifier 1
+    # if (!is.null(input$textile1mods)) {
+      # Grab all rows with modifier
+      mod1data <- current_textile %>%
+        rowwise() %>%
+        # AND: all(x %in% y)
+        # works when input is NULL
+        # OR: any(x %in% y)
+        # TODO OR, does not work if input is NULL
+        filter(all(input$textile1mods %in% c_across(
+          all_of(modvec)
+        ))) %>%
+        # Rename
+        mutate(textile_name = paste0(
+          textile_name, ": ",
+          toString(input$textile1mods)
+        ))
+    # }
+    
+    # Modifier 2
+    # if (!is.null(input$textile2mods)) {
+      # Grab all rows with modifier
+      mod2data <- current_textile %>%
+        rowwise() %>%
+        # AND: all(x %in% y)
+        # works when input is NULL
+        # OR: any(x %in% y)
+        # TODO OR, does not work if input is NULL
+        filter(all(input$textile2mods %in% c_across(
+          all_of(modvec)
+        ))) %>%
+        # Rename
+        mutate(textile_name = paste0(
+          textile_name, ": ",
+          toString(input$textile2mods)
+        ))
+    # }
+    
+    # Merge two data frames
+    # If both null: do nothing
+    if (is.null(input$textile1mods) & is.null(input$textile2mods)) {
+      
+    } else{
+      current_textile <- bind_rows(mod1data, mod2data) %>%
+        # For what we have data on
+        filter(!is.na(total_value))
+    }
+    
 
-    rbind(textile1.data, textile2.data) %>% # Concatenates the data for textile 1 and 2, which has already been filtered for modifiers
-      filter(!is.na(total_value)) %>% # if we don't have value information, we can't include the textile on our graph
-      mutate(total_value = as.numeric(total_value)) %>% # Converts guldens to numeric
-      ggplot() +
+    # Aggregate y by x
+    # y: quantity shipped (sum)
+    # y: total value (sum)
+    # y: price per piece (average)
+    # TODO deal with units
+    
+    plot_data <- current_textile %>%
+      group_by(textile_name, !!sym(input$xAxisChoice)) %>%
+      summarise(price_per_piece = mean(price_per_piece),
+                textile_quantity = sum(textile_quantity),
+                total_value = sum(total_value))
+    
+    # Table for debugging
+    # output$table <- renderTable(plot_data)
+    
+    # Finally plot
+    ggplot(plot_data) +
       geom_col(aes_string(
         x = input$xAxisChoice,
         y = input$yAxisChoice,
@@ -106,7 +152,7 @@ function(input, output, session) {
         paste0("_textile_data.csv")
     },
     content = function(file) {
-      filter(wicvoc, textile_name == input$textileName) %>%
+      current_textile %>%
         write_csv(file)
     },
     contentType = "text/csv"

@@ -47,6 +47,8 @@ fluidPage(
 
   # Output plotly ####
   mainPanel(
-    plotlyOutput("mainGraph")
+    plotlyOutput("mainGraph"),
+    # Table for debugging
+    #tableOutput('table'),
   ),
 )

@@ -8,8 +8,19 @@ library(readr)
 
 
 # Read data ####
-
 wicvoc <- readRDS("week4.rds")
 
-# make year discrete
+# Make year discrete
 wicvoc$orig_yr <- factor(wicvoc$orig_yr)
+
+# Modifier column names
+modvec <- c(
+  "textile_color_arch",
+  "textile_color_inf",
+  "textile_pattern_arch",
+  "textile_process_arch",
+  "textile_fiber_arch",
+  "textile_geography_arch",
+  "textile_quality_arch",
+  "textile_other_unknown_arch"
+)
