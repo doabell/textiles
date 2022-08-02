@@ -52,6 +52,7 @@ function(input, output, session) {
 
   # Main graph ####
   output$mainGraph <- renderPlotly({
+
     # Modifier 1
     # if (!is.null(input$textile1mods)) {
       # Grab all rows with modifier
@@ -91,13 +92,13 @@ function(input, output, session) {
     # }
     
     # Merge two data frames
-    # If both null: do nothing
+    # If both null: copy
     if (is.null(input$textile1mods) & is.null(input$textile2mods)) {
-      
+      plot_data <- current_textile
     } else{
-      current_textile <- bind_rows(mod1data, mod2data) %>%
-        # For what we have data on
-        filter(!is.na(total_value))
+      plot_data <- bind_rows(mod1data, mod2data) %>%
+        # Plot what we have data on
+        filter(!is.na(input$yAxisChoice))
     }
     
 
@@ -107,7 +108,7 @@ function(input, output, session) {
     # y: price per piece (average)
     # TODO deal with units
     
-    plot_data <- current_textile %>%
+    plot_data %<>%
       group_by(textile_name, !!sym(input$xAxisChoice)) %>%
       summarise(price_per_piece = mean(price_per_piece),
                 textile_quantity = sum(textile_quantity),
@@ -117,7 +118,8 @@ function(input, output, session) {
     # output$table <- renderTable(plot_data)
     
     # Finally plot
-    ggplot(plot_data) +
+    mainggplot <- plot_data %>%
+      ggplot() +
       geom_col(aes_string(
         x = input$xAxisChoice,
         y = input$yAxisChoice,
@@ -137,7 +139,9 @@ function(input, output, session) {
         fill = "Textile"
       ) + # Note the use of switch in the two lines above. This is so that we have nice label titles for each selection of our axises.
       theme_bw() +
-      theme(axis.text.x = element_text(angle = 90)) -> mainggplot
+      theme(axis.text.x = element_text(angle = 80)) +
+      # Title
+      ggtitle(paste("Values for", input$textileName))
 
     ggplotly(mainggplot) %>%
       layout(font = list(family = "Lato"))
