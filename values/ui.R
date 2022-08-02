@@ -2,6 +2,14 @@
 fluidPage(
   titlePanel("Textiles, Modifiers, and Values"),
 
+  # Fonts
+  tags$head(tags$style(
+    HTML("
+      @import url('https://fonts.googleapis.com/css2?family=Lato&display=swap');
+      * {font-family: 'Lato'} !important;
+    ")
+  )),
+
   # Inputs ####
   sidebarPanel(
 
@@ -49,6 +57,6 @@ fluidPage(
   mainPanel(
     plotlyOutput("mainGraph"),
     # Table for debugging
-    #tableOutput('table'),
+    # tableOutput('table'),
   ),
 )

@@ -139,7 +139,8 @@ function(input, output, session) {
       theme_bw() +
       theme(axis.text.x = element_text(angle = 90)) -> mainggplot
 
-    ggplotly(mainggplot)
+    ggplotly(mainggplot) %>%
+      layout(font = list(family = "Lato"))
   })
 
   # Download buttons ####
