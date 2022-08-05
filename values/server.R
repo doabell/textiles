@@ -211,8 +211,8 @@ function(input, output, session) {
       labs(
         x = switch(input$xAxisChoice,
           "orig_yr" = "Year",
-          "loc_dest" = "Destination",
-          "loc_orig" = "Origin"
+          "dest_loc_abr" = "Destination",
+          "orig_loc_abr" = "Origin"
         ),
         y = switch(input$yAxisChoice,
           "textile_quantity" = "Quantity Shipped",

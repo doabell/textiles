@@ -60,8 +60,8 @@ fluidPage(
       label = "Choose a variable for your x-axis",
       choices = c(
         "Year" = "orig_yr",
-        "Destination Port" = "loc_dest",
-        "Origin Port" = "loc_orig"
+        "Destination Port" = "dest_loc_abr",
+        "Origin Port" = "orig_loc_abr"
       )
     ),
 
@@ -83,7 +83,7 @@ fluidPage(
 
   # Output plotly ####
   mainPanel(
-    plotlyOutput("mainGraph"),
+    plotlyOutput("mainGraph", height = "640px"),
     # Table for debugging
     # tableOutput('table'),
   ),
