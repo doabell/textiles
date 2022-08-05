@@ -148,20 +148,26 @@ function(input, output, session) {
     # Modifier warnings
     output$mod1Warn <- renderUI({
       if (nrow(mod1data) < 1) {
-        tags$label(class = "text-danger",
-                   paste("No",
+        tags$label(
+          class = "text-danger",
+          paste(
+            "No",
                           input$textileName,
-                          "with these modifiers!")
+            "with these modifiers!"
+          )
                    )
       }
     })
     
     output$mod2Warn <- renderUI({
       if (nrow(mod2data) < 1) {
-        tags$label(class = "text-danger",
-                   paste("No",
+        tags$label(
+          class = "text-danger",
+          paste(
+            "No",
                           input$textileName,
-                          "with these modifiers!")
+            "with these modifiers!"
+          )
                    )
       }
     })
