@@ -1,6 +1,6 @@
 # UI
 fluidPage(
-  titlePanel("Textiles, Modifiers, and Values"),
+  # titlePanel("Textiles, Modifiers, and Values"),
 
   # Fonts
   tags$head(tags$style(
@@ -16,15 +16,43 @@ fluidPage(
     # Which textile
     selectInput(
       inputId = "textileName",
-      label = "Choose your textile",
+      label = "Choose a textile",
       choices = sort(unique(wicvoc$textile_name))
     ),
 
     # First modifier
     uiOutput("modifier1Choice"),
 
+    # And or or?
+    # FALSE: or
+    # TRUE: and
+    tags$label("Connected with..."),
+    switchInput(
+      inputId = "modifier1And",
+      onLabel = "And",
+      onStatus = "success",
+      offLabel = "Or",
+      offStatus = "info"
+    ),
+    
+    uiOutput("mod1Warn"),
+
+
     # Second modifier
     uiOutput("modifier2Choice"),
+
+    # And or or?
+    tags$label("Connected with..."),
+    switchInput(
+      inputId = "modifier2And",
+      onLabel = "And",
+      onStatus = "success",
+      offLabel = "Or",
+      size = "mini",
+      offStatus = "info"
+    ),
+    
+    uiOutput("mod2Warn"),
 
     # X-axis
     selectInput(

@@ -1,6 +1,7 @@
 # Libraries ####
 
 library(shiny)
+library(shinyWidgets)
 library(tidyverse)
 library(magrittr)
 library(plotly)

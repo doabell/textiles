@@ -13,16 +13,17 @@ function(input, output, session) {
         filter(textile_name == input$textileName)
     }
   )
-  
+
   # When user selects a textile
   # List all modifiers for this textile
   # Call with modifiers_list()
   # Modifier columns `modvec` defined in global.R
   modifiers_list <- eventReactive(
     input$textileName,
-      { current_textile() %>%
+    {
+      current_textile() %>%
         select(all_of(modvec)) %>%
-        sapply(unique)%>%
+        sapply(unique) %>%
         reduce(union) %>%
         setdiff(c(NA))
     }
@@ -30,67 +31,140 @@ function(input, output, session) {
 
   # Modifier choice UIs ####
   output$modifier1Choice <- renderUI({
-    if (length(modifiers_list()) != 0) {
-      selectInput(
-        inputId = "textile1mods",
-        multiple = TRUE,
-        label = paste("Choose one modifier for", input$textileName),
-        choices = modifiers_list()
-      )
-    }
+    # if (length(modifiers_list()) != 0) {
+    selectInput(
+      inputId = "textile1mods",
+      multiple = TRUE,
+      label = paste("Compare", input$textileName, "of these modifiers..."),
+      choices = modifiers_list()
+    )
+    # }
   })
 
   output$modifier2Choice <- renderUI({
-    if (length(modifiers_list()) != 0) {
-      selectInput(
-        inputId = "textile2mods",
-        multiple = TRUE,
-        label = paste("Choose another modifier for", input$textileName),
-        choices = modifiers_list()
-      )
-    }
+    # if (length(modifiers_list()) != 0) {
+    selectInput(
+      inputId = "textile2mods",
+      multiple = TRUE,
+      label = paste("With", input$textileName, "of these modifiers"),
+      choices = modifiers_list()
+    )
+    # }
   })
 
   # Main graph ####
   output$mainGraph <- renderPlotly({
 
-    # Modifier 1
-    # if (!is.null(input$textile1mods)) {
-    # Grab all rows with modifier
-    mod1data <- current_textile() %>%
-      rowwise() %>%
-      # AND: all(x %in% y)
-      # works when input is NULL
-      # OR: any(x %in% y)
-      # TODO OR does not work if input is NULL
-      filter(all(input$textile1mods %in% c_across(
-        all_of(modvec)
-      ))) %>%
-      # Rename
-      mutate(textile_name = paste0(
-        textile_name, ": ",
-        toString(input$textile1mods)
-      ))
-    # }
+    # Modifier 1 ####
+    # Contains modifiers
+    if (!is.null(input$textile1mods)) {
+      
+      # TRUE: AND
+      if (input$modifier1And) {
+        # Grab all rows with modifier
+        mod1data <- current_textile() %>%
+          rowwise() %>%
+          # AND: all(x %in% y)
+          filter(
+            all(
+              input$textile1mods %in% c_across(all_of(modvec))
+            )
+          ) %>%
+          # Rename
+          mutate(textile_name = paste0(
+            textile_name, ": ",
+            toString(input$textile1mods)
+          ))
+      } else {
+        # FALSE: OR
+        # Grab all rows with modifier
+        mod1data <- current_textile() %>%
+          rowwise() %>%
+          # OR: any(x %in% y)
+          filter(
+            any(
+              input$textile1mods %in% c_across(all_of(modvec))
+            )
+          ) %>%
+          # Rename
+          mutate(textile_name = paste0(
+            textile_name, ": ",
+            toString(input$textile1mods)
+          ))
+      }
+    } else {
+      # No modifiers
+      mod1data <- current_textile() %>%
+        mutate(textile_name = paste0(
+          textile_name, ": all"
+        ))
+    }
 
-    # Modifier 2
-    # if (!is.null(input$textile2mods)) {
-    # Grab all rows with modifier
-    mod2data <- current_textile() %>%
-      rowwise() %>%
-      # AND: all(x %in% y)
-      # works when input is NULL
-      # OR: any(x %in% y)
-      # TODO OR, does not work if input is NULL
-      filter(all(input$textile2mods %in% c_across(
-        all_of(modvec)
-      ))) %>%
-      # Rename
-      mutate(textile_name = paste0(
-        textile_name, ": ",
-        toString(input$textile2mods)
-      ))
-    # }
+    # Modifier 2 ####
+    # Contains modifiers
+    if (!is.null(input$textile2mods)) {
+      
+      # TRUE: AND
+      if (input$modifier2And) {
+        # Grab all rows with modifier
+        mod2data <- current_textile() %>%
+          rowwise() %>%
+          # AND: all(x %in% y)
+          filter(
+            all(
+              input$textile2mods %in% c_across(all_of(modvec))
+            )
+          ) %>%
+          # Rename
+          mutate(textile_name = paste0(
+            textile_name, ": ",
+            toString(input$textile2mods)
+          ))
+      } else {
+        # FALSE: OR
+        # Grab all rows with modifier
+        mod2data <- current_textile() %>%
+          rowwise() %>%
+          # OR: any(x %in% y)
+          filter(
+            any(
+              input$textile2mods %in% c_across(all_of(modvec))
+            )
+          ) %>%
+          # Rename
+          mutate(textile_name = paste0(
+            textile_name, ": ",
+            toString(input$textile2mods)
+          ))
+      }
+    } else {
+      # No modifiers
+      mod2data <- current_textile() %>%
+        mutate(textile_name = paste0(
+          textile_name, ": all"
+        ))
+    }
+    
+    # Modifier warnings
+    output$mod1Warn <- renderUI({
+      if (nrow(mod1data) < 1) {
+        tags$label(class = "text-danger",
+                   paste("No",
+                          input$textileName,
+                          "with these modifiers!")
+                   )
+      }
+    })
+    
+    output$mod2Warn <- renderUI({
+      if (nrow(mod2data) < 1) {
+        tags$label(class = "text-danger",
+                   paste("No",
+                          input$textileName,
+                          "with these modifiers!")
+                   )
+      }
+    })
 
     # Merge two data frames
     # If both null: copy
@@ -149,7 +223,6 @@ function(input, output, session) {
       theme(axis.text.x = element_text(angle = 80)) +
       # Title
       ggtitle(paste0(
-        "Values for ",
         input$textileName,
         " (unit: ",
         unitvec[[input$textileName]],
