@@ -7,7 +7,7 @@ library(readxl)
 library(readr)
 
 # read
-week4 <- read_excel("WICVOCDataAll_080222.xlsx",
+week4 <- read_excel("WICVOCDataAll_080422.xlsx",
   guess_max = 20000
 )
 
@@ -78,14 +78,14 @@ week4 %<>%
 
 # Geo ####
 # assumes "Java" is "JavaNW" as nothing else is
-week4 %<>%
-  mutate(
-    loc_orig = if_else(
-      loc_orig == "Java",
-      "JavaNW",
-      loc_orig
-    )
-  )
+# week4 %<>%
+#   mutate(
+#     loc_orig = if_else(
+#       loc_orig == "Java",
+#       "JavaNW",
+#       loc_orig
+#     )
+#   )
 
 # Quantity ####
 # deal with ells.
@@ -129,10 +129,14 @@ unitvec <- week4 %>%
 # select columns
 week4 %<>%
   dplyr::select(
+    exchange_nr,
+    source,
+    company,
+    means_of_exchange,
     orig_yr,
     dest_yr,
-    loc_orig,
-    loc_dest,
+    orig_loc_abr,
+    dest_loc_abr,
     starts_with("textile"),
     total_value,
     price_per_unit
