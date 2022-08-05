@@ -35,7 +35,7 @@ function(input, output, session) {
     selectInput(
       inputId = "textile1mods",
       multiple = TRUE,
-      label = paste("Compare", input$textileName, "of these modifiers..."),
+      label = paste("Choose modifier(s) for", input$textileName),
       choices = modifiers_list()
     )
     # }
@@ -46,7 +46,7 @@ function(input, output, session) {
     selectInput(
       inputId = "textile2mods",
       multiple = TRUE,
-      label = paste("With", input$textileName, "of these modifiers"),
+      label = paste("Choose additional modifier(s) for", input$textileName),
       choices = modifiers_list()
     )
     # }
@@ -58,7 +58,7 @@ function(input, output, session) {
     # Modifier 1 ####
     # Contains modifiers
     if (!is.null(input$textile1mods)) {
-      
+
       # TRUE: AND
       if (input$modifier1And) {
         # Grab all rows with modifier
@@ -103,7 +103,7 @@ function(input, output, session) {
     # Modifier 2 ####
     # Contains modifiers
     if (!is.null(input$textile2mods)) {
-      
+
       # TRUE: AND
       if (input$modifier2And) {
         # Grab all rows with modifier
@@ -144,7 +144,7 @@ function(input, output, session) {
           textile_name, ": all"
         ))
     }
-    
+
     # Modifier warnings
     output$mod1Warn <- renderUI({
       if (nrow(mod1data) < 1) {
@@ -152,23 +152,23 @@ function(input, output, session) {
           class = "text-danger",
           paste(
             "No",
-                          input$textileName,
-            "with these modifiers!"
+            input$textileName,
+            "with all these modifiers!"
           )
-                   )
+        )
       }
     })
-    
+
     output$mod2Warn <- renderUI({
       if (nrow(mod2data) < 1) {
         tags$label(
           class = "text-danger",
           paste(
             "No",
-                          input$textileName,
-            "with these modifiers!"
+            input$textileName,
+            "with all these modifiers!"
           )
-                   )
+        )
       }
     })
 

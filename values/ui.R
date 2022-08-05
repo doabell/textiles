@@ -26,15 +26,15 @@ fluidPage(
     # And or or?
     # FALSE: or
     # TRUE: and
-    tags$label("Connected with..."),
     switchInput(
       inputId = "modifier1And",
-      onLabel = "And",
+      onLabel = "AND",
       onStatus = "success",
-      offLabel = "Or",
+      offLabel = "OR",
       offStatus = "info"
     ),
-    
+    # tags$p("Choose ", tags$b("OR"), " to see results that match ", tags$i("any"), " of the selected modifiers"),
+    # tags$p("Choose ", tags$b("AND"), " to see results that match ", tags$i("all"), " of the selected modifiers"),
     uiOutput("mod1Warn"),
 
 
@@ -42,37 +42,37 @@ fluidPage(
     uiOutput("modifier2Choice"),
 
     # And or or?
-    tags$label("Connected with..."),
     switchInput(
       inputId = "modifier2And",
-      onLabel = "And",
+      onLabel = "AND",
       onStatus = "success",
-      offLabel = "Or",
+      offLabel = "OR",
       size = "mini",
       offStatus = "info"
     ),
-    
+    tags$p("Choose ", tags$b("OR"), " to see results that match ", tags$i("any"), " of the selected modifiers"),
+    tags$p("Choose ", tags$b("AND"), " to see results that match ", tags$i("all"), " of the selected modifiers"),
     uiOutput("mod2Warn"),
 
     # X-axis
     selectInput(
       inputId = "xAxisChoice",
-      label = "Choose a variable for your x-axis",
+      label = "Choose a variable for the x-axis",
       choices = c(
         "Year" = "orig_yr",
-        "Destination Port" = "dest_loc_abr",
-        "Origin Port" = "orig_loc_abr"
+        "Destination Region" = "dest_loc_abr",
+        "Origin Region" = "orig_loc_abr"
       )
     ),
 
     # Y-axis
     selectInput(
       inputId = "yAxisChoice",
-      label = "Choose a variable for your y-axis",
+      label = "Choose a variable for the y-axis",
       choices = c(
         "Quantity Shipped" = "textile_quantity",
-        "Total Value (Dutch Guldens)" = "total_value",
-        "Price per Unit" = "price_per_unit"
+        "Total Value (Dutch guilders)" = "total_value",
+        "Average Price per Unit (Dutch guilders)" = "price_per_unit"
       )
     ),
 
