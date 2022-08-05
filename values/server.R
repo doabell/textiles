@@ -227,6 +227,8 @@ function(input, output, session) {
       ) +
       theme_bw() +
       theme(axis.text.x = element_text(angle = 80)) +
+      # Wrap x axis
+      scale_x_discrete(labels = function(x) str_wrap(x, width = 18)) +
       # Title
       ggtitle(paste0(
         input$textileName,

@@ -3,6 +3,7 @@
 library(shiny)
 library(shinyWidgets)
 library(tidyverse)
+library(stringr)
 library(magrittr)
 library(plotly)
 library(readr)
