@@ -49,19 +49,6 @@ joined.data <- joined.data.original
 #                                              levels = c("Inexpensive", "Mid-Range", "Expensive"))
 map.data <- map.data.original
 
-# Create zoom locations
-latLongZoom.original <- data.frame(
-  "Area" = c(
-    "World", "Europe", "Africa",
-    "Middle East", "Pacfic Islands", "Asia"
-  ),
-  "Lat" = c(30, 49.8, -6, 27, 0, 32),
-  "Long" = c(53, 15.47, 30, 72.5, 116, 115),
-  "Magnify" = c(2, 4.25, 2.5, 4, 4, 3.25)
-)
-
-latLongZoom <- latLongZoom.original
-
 # modVec
 
 # Creating a modifier choice vector

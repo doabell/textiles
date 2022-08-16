@@ -33,7 +33,6 @@ function(input, output, session) {
     geography <- input$geography
     qualities <- input$qualities
     # inferredQualities <- isolate(input$inferredQualities)
-    area <- input$zoomTo
     input
 
 
@@ -230,7 +229,6 @@ function(input, output, session) {
     geography <- input$geography
     qualities <- input$qualities
     # inferredQualities <- input$inferredQualities
-    area <- input$zoomTo
 
     # Every time, we want to start with all of the data to filter through
     # joined.data <- joined.data.original
@@ -249,16 +247,9 @@ function(input, output, session) {
       by = c("ADMIN" = choice)
     )
 
-    # This will be used to zoom to a specific region on the map
-    latLongZoom <- latLongZoom.original %>%
-      filter(Area == area)
-
-    viewLat <- latLongZoom[, "Lat"]
-    viewLong <- latLongZoom[, "Long"]
-    viewZoom <- latLongZoom[, "Magnify"]
 
     # create the actual map
-    create_leaflet_map(map.data, totalValues, dataType, c(viewLat, viewLong, viewZoom))
+    create_leaflet_map(map.data, totalValues, dataType, c(30, 53, 2))
   })
 
 
@@ -324,17 +315,14 @@ function(input, output, session) {
       #            company)
       # }
 
-      # Omit na of the selected columns to avoid errors
-      if (input$omitNAs) {
+      # remove na of the selected columns to avoid errors
         if (modifier == "colorList") {
           pie.data <- pie.data %>%
             mutate(colorList = ifelse(colorList == "No color indicated", NA, colorList))
         }
         pie.data <- pie.data %>%
           na.omit()
-      } else { # Fix a problem for if NA is the only data point
-        pie.data[3][is.na(pie.data[3])] <- "None indicated"
-      }
+
 
       if (dataSet != "Both") { # Controlling for company selection
         pie.data <- pie.data %>%
@@ -433,7 +421,6 @@ function(input, output, session) {
       # inferredQualities <- input$inferredQualities
       # orig_yr <- input$orig_yr
       year <- input$year
-      facet <- input$facet
       # dest_yr <- input$dest_yr
 
 
@@ -454,8 +441,7 @@ function(input, output, session) {
         "qualities" = qualities,
         # 'inferredQualities' = inferredQualities,
         #' orig_yr' = orig_yr,
-        "year" = year,
-        "facet" = facet
+        "year" = year
       )
 
 
@@ -489,7 +475,7 @@ function(input, output, session) {
           )
       }
 
-      if (input$omitNAs) {
+
         if (modifier == "colorList") {
           bar.data <- bar.data %>%
             mutate(colorList = ifelse(colorList == "No color indicated", NA, colorList))
@@ -497,9 +483,7 @@ function(input, output, session) {
 
         bar.data <- bar.data %>%
           na.omit()
-      } else {
-        bar.data[4][is.na(bar.data[4])] <- "None indicated"
-      }
+
 
       if (dataSet != "Both") {
         bar.data <- bar.data %>%

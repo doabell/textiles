@@ -611,7 +611,7 @@ return_colnameByDataType <- function(dataType) {
 
 
 
-createBarChart <- function(data, input_vec) { # dataType,year,modVec,regionChoice,modifier,facet){
+createBarChart <- function(data, input_vec) { # dataType,year,modVec,regionChoice,modifier){
 
   countryName <- input_vec["name"]
   modifier <- input_vec["modifier"]
@@ -630,7 +630,6 @@ createBarChart <- function(data, input_vec) { # dataType,year,modVec,regionChoic
   # orig_yr <- input_vec['orig_yr']
   # dest_yr <- input_vec['dest_yr']
   year <- input_vec["year"]
-  facet <- input_vec["facet"]
 
   if (length(countryName) == 0 || (is.null(countryName) || is.na(countryName))) {
     return(
@@ -684,9 +683,6 @@ createBarChart <- function(data, input_vec) { # dataType,year,modVec,regionChoic
       theme_bw() +
       ggtitle(label = paste(modifierObj, "distribution for", countryName, "with these filters."))
 
-    if (facet) {
-      bar_plot <- bar_plot + facet_wrap(~ get(modifier))
-    }
 
     return(bar_plot)
   } else {

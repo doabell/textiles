@@ -24,12 +24,6 @@ fluidPage(
       choices = c("Quantity", "Value"),
       selected = "Quantity"
     ),
-    selectizeInput(
-      inputId = "zoomTo",
-      label = "Zoom to:",
-      choices = levels(factor(latLongZoom$Area)),
-      selected = "World"
-    ),
 
     # selectizeInput(inputId = "textileName",
     #                label = "Choose textile(s) of interest",
@@ -94,19 +88,11 @@ fluidPage(
       choices = modVec,
       selected = "textile_name"
     ),
-    checkboxInput(
-      inputId = "omitNAs",
-      label = "Omit NAs in charts"
-    ),
     selectInput(
       inputId = "barChart",
       label = "Choose a modifier for the bar chart:",
       choices = modVec,
       selected = "textile_name"
-    ),
-    checkboxInput(
-      inputId = "facet",
-      label = "Facet by modifier"
     )
   ),
   mainPanel(
