@@ -107,9 +107,19 @@ fluidPage(
     tabsetPanel( # All of the outputs go here (map/graphs, data tables)
       tabPanel(
         title = "Map Explorer",
-        leafletOutput(outputId = "countriesMap"),
-        plotOutput(outputId = "pieChart"),
-        plotOutput(outputId = "barChart") # outputId =
+        tabsetPanel(
+          tabPanel(
+            title = "Country 1",
+            leafletOutput(outputId = "countriesMap"),
+            plotOutput(outputId = "pieChart"),
+          ),
+          tabPanel(
+            title = "Country 2",
+            leafletOutput(outputId = "countriesMap2"),
+            plotOutput(outputId = "pieChart2"),
+          )
+        ),
+        plotOutput(outputId = "barChart")
       ),
       tabPanel(
         title = "Table Explorer",

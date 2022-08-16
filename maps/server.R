@@ -251,6 +251,43 @@ function(input, output, session) {
     # create the actual map
     create_leaflet_map(map.data, totalValues, dataType, c(30, 53, 2))
   })
+  
+  output$countriesMap2 <- renderLeaflet({
+    
+    # reading in all of the inputs, isolating them
+    dataSet <- input$dataSet
+    dataType <- input$dataType
+    regionChoice <- input$regionChoice
+    textileName <- input$textileName
+    colors <- input$colors
+    patterns <- input$patterns
+    process <- input$process
+    fibers <- input$fibers
+    geography <- input$geography
+    qualities <- input$qualities
+    # inferredQualities <- input$inferredQualities
+    
+    # Every time, we want to start with all of the data to filter through
+    # joined.data <- joined.data.original
+    
+    # Use the function to filter the inputs
+    # joined.data <- isolate(filter_by_inputs(joined.data,isolate(input)))
+    
+    joined.data <- reactive_data()
+    
+    
+    choice <- get_regionChoice(regionChoice)
+    totalValues <- filter_totalValue(joined.data, regionChoice, dataSet)
+    
+    map.data@data <- left_join(map.data.original@data, # Join with the map data, using the original map data each time
+                               totalValues,
+                               by = c("ADMIN" = choice)
+    )
+    
+    
+    # create the actual map
+    create_leaflet_map(map.data, totalValues, dataType, c(30, 53, 2))
+  })
 
 
 
@@ -329,6 +366,142 @@ function(input, output, session) {
           filter(company == dataSet)
       }
 
+      if (input$dataType == "Quantity") { # If they're interested in quantity
+        if (nrow(pie.data) != 0) { # check to see if there are values left to publish
+          pie.data %>%
+            ggplot(aes(
+              x = "",
+              y = textile_quantity
+            )) +
+            geom_bar(
+              stat = "identity",
+              width = 1,
+              aes_string(fill = modifier)
+            ) +
+            coord_polar("y", start = 0) + # This line in particular changes the bar chart to a pie chart
+            labs(
+              x = NULL,
+              y = NULL,
+              fill = NULL
+            ) +
+            scale_fill_viridis(
+              discrete = TRUE,
+              name = paste(names(modVec)[modVec == modifier]),
+              option = "magma"
+            ) +
+            theme_void() +
+            ggtitle(label = paste(names(modVec)[modVec == modifier], "distribution for", name, "with these filters."))
+        } else { # No rows were found
+          ggplot() +
+            ggtitle(label = paste(name, " has no data for these filters and ", names(modVec)[modVec == modifier], ".", sep = ""))
+        }
+      } else { # This will do total value the same way, except graphing deb_dec
+        if (nrow(pie.data) != 0) {
+          pie.data %>%
+            ggplot(aes(
+              x = "",
+              y = deb_dec
+            )) +
+            geom_bar(
+              stat = "identity",
+              width = 1,
+              aes_string(fill = modifier)
+            ) +
+            coord_polar("y", start = 0) +
+            labs(
+              x = NULL,
+              y = NULL,
+              fill = NULL
+            ) +
+            scale_fill_viridis(
+              discrete = TRUE,
+              name = paste(names(modVec)[modVec == modifier]),
+              option = "magma"
+            ) +
+            theme_void() +
+            ggtitle(label = paste(names(modVec)[modVec == modifier], "monetary distribution for", name, "with these filters."))
+        } else {
+          ggplot() +
+            ggtitle(label = paste(name, " has no data for these filters and ", names(modVec)[modVec == modifier], ".", sep = ""))
+        }
+      }
+    } else { # This comes up if they have not clicked any countries
+      ggplot() +
+        ggtitle(label = "Select a country with data for these textiles in order to display a pie chart here.")
+    }
+  })
+  
+  output$pieChart2 <- renderPlot({
+    name <- input$countriesMap2_shape_click$id
+    
+    # only want to do this if they clicked on a country
+    if (length(name) != 0) {
+      # Read in all of the inputs, but isolated
+      modifier <- input$pieChart
+      dataSet <- input$dataSet
+      regionChoice <- input$regionChoice
+      textileName <- input$textileName
+      colors <- input$colors
+      patterns <- input$patterns
+      process <- input$process
+      fibers <- input$fibers
+      geography <- input$geography
+      qualities <- input$qualities
+      # inferredQualities <- input$inferredQualities
+      
+      # Again, reusing the original data
+      # joined.data <- joined.data.original
+      
+      # Filter all the inputs
+      # joined.data <- isolate(filter_by_inputs(joined.data,isolate(input)))
+      
+      
+      joined.data <- reactive_data()
+      
+      choice <- get_regionChoice(regionChoice) # get dest or orig
+      
+      # We care specifically about the destination here
+      pie.data <- joined.data %>%
+        filter(joined.data[choice] == name) %>%
+        select(
+          textile_quantity,
+          deb_dec,
+          all_of(modifier),
+          company
+        )
+      
+      
+      #   if(regionChoice == "Destination"){ #Only dest_country
+      #   pie.data <- joined.data %>%
+      #     filter(dest_country == name) %>%
+      #     select(textile_quantity,
+      #            deb_dec,
+      #            all_of(modifier),
+      #            company)
+      # }
+      # else { #Only orig_country
+      #   pie.data <- joined.data %>%
+      #     filter(orig_country == name) %>%
+      #     select(textile_quantity,
+      #            deb_dec,
+      #            all_of(modifier),
+      #            company)
+      # }
+      
+      # remove na of the selected columns to avoid errors
+      if (modifier == "colorList") {
+        pie.data <- pie.data %>%
+          mutate(colorList = ifelse(colorList == "No color indicated", NA, colorList))
+      }
+      pie.data <- pie.data %>%
+        na.omit()
+      
+      
+      if (dataSet != "Both") { # Controlling for company selection
+        pie.data <- pie.data %>%
+          filter(company == dataSet)
+      }
+      
       if (input$dataType == "Quantity") { # If they're interested in quantity
         if (nrow(pie.data) != 0) { # check to see if there are values left to publish
           pie.data %>%
