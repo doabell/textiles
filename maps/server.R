@@ -251,9 +251,9 @@ function(input, output, session) {
     # create the actual map
     create_leaflet_map(map.data, totalValues, dataType, c(30, 53, 2))
   })
-  
+
   output$countriesMap2 <- renderLeaflet({
-    
+
     # reading in all of the inputs, isolating them
     dataSet <- input$dataSet
     dataType <- input$dataType
@@ -266,25 +266,25 @@ function(input, output, session) {
     geography <- input$geography
     qualities <- input$qualities
     # inferredQualities <- input$inferredQualities
-    
+
     # Every time, we want to start with all of the data to filter through
     # joined.data <- joined.data.original
-    
+
     # Use the function to filter the inputs
     # joined.data <- isolate(filter_by_inputs(joined.data,isolate(input)))
-    
+
     joined.data <- reactive_data()
-    
-    
+
+
     choice <- get_regionChoice(regionChoice)
     totalValues <- filter_totalValue(joined.data, regionChoice, dataSet)
-    
+
     map.data@data <- left_join(map.data.original@data, # Join with the map data, using the original map data each time
-                               totalValues,
-                               by = c("ADMIN" = choice)
+      totalValues,
+      by = c("ADMIN" = choice)
     )
-    
-    
+
+
     # create the actual map
     create_leaflet_map(map.data, totalValues, dataType, c(30, 53, 2))
   })
@@ -353,12 +353,12 @@ function(input, output, session) {
       # }
 
       # remove na of the selected columns to avoid errors
-        if (modifier == "colorList") {
-          pie.data <- pie.data %>%
-            mutate(colorList = ifelse(colorList == "No color indicated", NA, colorList))
-        }
+      if (modifier == "colorList") {
         pie.data <- pie.data %>%
-          na.omit()
+          mutate(colorList = ifelse(colorList == "No color indicated", NA, colorList))
+      }
+      pie.data <- pie.data %>%
+        na.omit()
 
 
       if (dataSet != "Both") { # Controlling for company selection
@@ -430,10 +430,10 @@ function(input, output, session) {
         ggtitle(label = "Select a country with data for these textiles in order to display a pie chart here.")
     }
   })
-  
+
   output$pieChart2 <- renderPlot({
     name <- input$countriesMap2_shape_click$id
-    
+
     # only want to do this if they clicked on a country
     if (length(name) != 0) {
       # Read in all of the inputs, but isolated
@@ -448,18 +448,18 @@ function(input, output, session) {
       geography <- input$geography
       qualities <- input$qualities
       # inferredQualities <- input$inferredQualities
-      
+
       # Again, reusing the original data
       # joined.data <- joined.data.original
-      
+
       # Filter all the inputs
       # joined.data <- isolate(filter_by_inputs(joined.data,isolate(input)))
-      
-      
+
+
       joined.data <- reactive_data()
-      
+
       choice <- get_regionChoice(regionChoice) # get dest or orig
-      
+
       # We care specifically about the destination here
       pie.data <- joined.data %>%
         filter(joined.data[choice] == name) %>%
@@ -469,8 +469,8 @@ function(input, output, session) {
           all_of(modifier),
           company
         )
-      
-      
+
+
       #   if(regionChoice == "Destination"){ #Only dest_country
       #   pie.data <- joined.data %>%
       #     filter(dest_country == name) %>%
@@ -487,7 +487,7 @@ function(input, output, session) {
       #            all_of(modifier),
       #            company)
       # }
-      
+
       # remove na of the selected columns to avoid errors
       if (modifier == "colorList") {
         pie.data <- pie.data %>%
@@ -495,13 +495,13 @@ function(input, output, session) {
       }
       pie.data <- pie.data %>%
         na.omit()
-      
-      
+
+
       if (dataSet != "Both") { # Controlling for company selection
         pie.data <- pie.data %>%
           filter(company == dataSet)
       }
-      
+
       if (input$dataType == "Quantity") { # If they're interested in quantity
         if (nrow(pie.data) != 0) { # check to see if there are values left to publish
           pie.data %>%
@@ -649,13 +649,13 @@ function(input, output, session) {
       }
 
 
-        if (modifier == "colorList") {
-          bar.data <- bar.data %>%
-            mutate(colorList = ifelse(colorList == "No color indicated", NA, colorList))
-        }
-
+      if (modifier == "colorList") {
         bar.data <- bar.data %>%
-          na.omit()
+          mutate(colorList = ifelse(colorList == "No color indicated", NA, colorList))
+      }
+
+      bar.data <- bar.data %>%
+        na.omit()
 
 
       if (dataSet != "Both") {
