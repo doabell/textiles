@@ -1,28 +1,31 @@
 # Creating the UI
 fluidPage(
-  theme = shinytheme("sandstone"),
+  # theme = shinytheme("sandstone"),
   titlePanel("Interactive Textile Explorer"),
   sidebarPanel( # All inputs will go in this sidebarPanel
     h4("Explore different facets of the data by selecting inputs below:"),
-    radioButtons(
+    radioGroupButtons(
       inputId = "dataSet",
       label = "Choose company of interest",
-      # choices = c("WIC", "VOC", "Both"),
-      choiceNames = c("All Companies", "East India Company (VOC)", "West India Company (WIC)"),
-      choiceValues = c("Both", "VOC", "WIC"),
-      selected = "Both"
+      choices = c("WIC", "VOC", "Both"),
+      # choiceNames = c("All Companies", "East India Company (VOC)", "West India Company (WIC)"),
+      # choiceValues = c("Both", "VOC", "WIC"),
+      selected = "Both",
+      justified = TRUE
     ),
-    radioButtons(
+    radioGroupButtons(
       inputId = "regionChoice",
-      label = "Select one",
+      label = "Select a country as...",
       choices = c("Origin", "Destination"),
-      selected = "Origin"
+      selected = "Origin",
+      justified = TRUE
     ),
-    radioButtons(
+    radioGroupButtons(
       inputId = "dataType",
-      label = "Choose data type of interest",
+      label = "Choose data of interest",
       choices = c("Quantity", "Value"),
-      selected = "Quantity"
+      selected = "Quantity",
+      justified = TRUE
     ),
 
     # selectizeInput(inputId = "textileName",
