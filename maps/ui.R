@@ -4,26 +4,31 @@ fluidPage(
   titlePanel("Interactive Textile Explorer"),
   sidebarPanel( # All inputs will go in this sidebarPanel
     h4("Explore different facets of the data by selecting inputs below:"),
-    radioGroupButtons(
+    pickerInput(
       inputId = "dataSet",
       label = "Choose company of interest",
-      choices = c("WIC", "VOC", "Both"),
+      choices = c("Both", "VOC", "WIC"),
       # choiceNames = c("All Companies", "East India Company (VOC)", "West India Company (WIC)"),
       # choiceValues = c("Both", "VOC", "WIC"),
       selected = "Both",
-      justified = TRUE
+      # justified = TRUE
+      choicesOpt = list(
+        subtext = c("VOC & WIC", "East India Company", "West India Company")
+      )
     ),
     radioGroupButtons(
       inputId = "regionChoice",
       label = "Select a country as...",
-      choices = c("Origin", "Destination"),
+      # choices = c("Origin", "Destination"),
+      choices = c(`<i class='fa fa-plane-departure'></i> Origin` = "Origin", `<i class='fa fa-plane-arrival'></i> Destination` = "Destination"),
       selected = "Origin",
       justified = TRUE
     ),
     radioGroupButtons(
       inputId = "dataType",
       label = "Choose data of interest",
-      choices = c("Quantity", "Value"),
+      # choices = c("Quantity", "Value"),
+      choices = c(`<i class='fa fa-ball-pile'></i> Quantity` = "Quantity", `<i class='fa fa-money-bill-alt'></i> Value` = "Value"),
       selected = "Quantity",
       justified = TRUE
     ),
