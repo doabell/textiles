@@ -16,9 +16,10 @@ fluidPage(
         subtext = c("VOC & WIC", "East India Company", "West India Company")
       )
     ),
+    uiOutput("twoCountries"),
     radioGroupButtons(
       inputId = "regionChoice",
-      label = "Select a country as...",
+      label = "Select these countries as...",
       # choices = c("Origin", "Destination"),
       choices = c(`<i class='fa fa-plane-departure'></i> Origin` = "Origin", `<i class='fa fa-plane-arrival'></i> Destination` = "Destination"),
       selected = "Origin",
@@ -28,7 +29,7 @@ fluidPage(
       inputId = "dataType",
       label = "Choose data of interest",
       # choices = c("Quantity", "Value"),
-      choices = c(`<i class='fa fa-ball-pile'></i> Quantity` = "Quantity", `<i class='fa fa-money-bill-alt'></i> Value` = "Value"),
+      choices = c(`<i class='fa fa-bar-chart'></i> Quantity` = "Quantity", `<i class='fa fa-money-bill-alt'></i> Value` = "Value"),
       selected = "Quantity",
       justified = TRUE
     ),

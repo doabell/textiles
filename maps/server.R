@@ -65,8 +65,24 @@ function(input, output, session) {
 
     return(data)
   })
-
-
+  
+  output$twoCountries <- renderUI({
+    c1 <- ifelse(
+      length(input$countriesMap_shape_click$id) != 0,
+      input$countriesMap_shape_click$id,
+      "Not Selected"
+       )
+    c2 <- ifelse(
+      length(input$countriesMap2_shape_click$id) != 0,
+      input$countriesMap2_shape_click$id,
+      "Not Selected"
+    )
+    tagList(
+    tags$p(tags$b("Country 1: "), c1),
+    tags$p(tags$b("Country 2: "), c2))
+    
+  })
+  
   output$TextileName <- renderUI({
     selectizeInput(
       inputId = "textileName",
