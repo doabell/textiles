@@ -406,9 +406,11 @@ function(input, output, session) {
               option = "magma"
             ) +
             theme_void() +
+            theme(text = element_text(family = "Lato", size = 15)) +
             ggtitle(label = paste(names(modVec)[modVec == modifier], "distribution for", name, "with these filters."))
         } else { # No rows were found
           ggplot() +
+            theme(text = element_text(family = "Lato", size = 15)) +
             ggtitle(label = paste(name, " has no data for these filters and ", names(modVec)[modVec == modifier], ".", sep = ""))
         }
       } else { # This will do total value the same way, except graphing total_value
@@ -435,14 +437,17 @@ function(input, output, session) {
               option = "magma"
             ) +
             theme_void() +
+            theme(text = element_text(family = "Lato", size = 15)) +
             ggtitle(label = paste(names(modVec)[modVec == modifier], "monetary distribution for", name, "with these filters."))
         } else {
           ggplot() +
+            theme(text = element_text(family = "Lato", size = 15)) +
             ggtitle(label = paste(name, " has no data for these filters and ", names(modVec)[modVec == modifier], ".", sep = ""))
         }
       }
     } else { # This comes up if they have not clicked any countries
       ggplot() +
+        theme(text = element_text(family = "Lato", size = 15)) +
         ggtitle(label = "Select a country with data for these textiles in order to display a pie chart here.")
     }
   })
@@ -542,9 +547,11 @@ function(input, output, session) {
               option = "magma"
             ) +
             theme_void() +
+            theme(text = element_text(family = "Lato", size = 15)) +
             ggtitle(label = paste(names(modVec)[modVec == modifier], "distribution for", name, "with these filters."))
         } else { # No rows were found
           ggplot() +
+            theme(text = element_text(family = "Lato", size = 15)) +
             ggtitle(label = paste(name, " has no data for these filters and ", names(modVec)[modVec == modifier], ".", sep = ""))
         }
       } else { # This will do total value the same way, except graphing total_value
@@ -571,9 +578,11 @@ function(input, output, session) {
               option = "magma"
             ) +
             theme_void() +
+            theme(text = element_text(family = "Lato", size = 15)) +
             ggtitle(label = paste(names(modVec)[modVec == modifier], "monetary distribution for", name, "with these filters."))
         } else {
           ggplot() +
+            theme(text = element_text(family = "Lato", size = 15)) +
             ggtitle(label = paste(name, " has no data for these filters and ", names(modVec)[modVec == modifier], ".", sep = ""))
         }
       }
@@ -758,6 +767,7 @@ function(input, output, session) {
       
     } else {
       ggplot() +
+        theme(text = element_text(family = "Lato", size = 15)) +
         ggtitle(label = paste("No data for these filters."))
     }
   })

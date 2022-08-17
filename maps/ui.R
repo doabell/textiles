@@ -1,5 +1,13 @@
 # Creating the UI
 fluidPage(
+  # Fonts
+  tags$head(tags$style(
+    HTML("
+      @import url('https://fonts.googleapis.com/css2?family=Lato&display=swap');
+      * {font-family: 'Lato'} !important;
+    ")
+  )),
+  
   sidebarPanel( # All inputs will go in this sidebarPanel
     pickerInput(
       inputId = "dataSet",

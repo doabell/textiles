@@ -687,12 +687,14 @@ createBarChart <- function(data, input_vec, compare = NULL) { # dataType,year,mo
         option = "magma"
       ) +
       theme_bw() +
+      theme(text = element_text(family = "Lato", size = 15)) +
       ggtitle(label = plotLabel)
 
 
     return(bar_plot)
   } else {
     ggplot() +
+      theme(text = element_text(family = "Lato", size = 15)) +
       ggtitle(label = paste(name, " has no data for these filters and ", modifierObj, ".", sep = ""))
   }
 }

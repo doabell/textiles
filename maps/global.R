@@ -13,18 +13,21 @@
 # libraries
 library(shiny)
 library(readxl)
-library(rgdal)
+library(showtext)
 library(tidyverse)
 library(stringr)
 library(leaflet)
 library(viridis)
-library(jsonlite)
-library(plotly)
+# library(plotly)
 library(shinyWidgets)
 library(shinythemes)
 
 # source to function file
 source("functions.R")
+
+# Font for ggplot
+font_add_google("Lato", "Lato")
+showtext_auto()
 
 CONSTANTS <- c(
   "SHINY_THEME" = "sandstone",
