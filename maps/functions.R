@@ -849,19 +849,32 @@ filter_by_inputs <- function(data, input) {
 
 # Creates the map based on some data set and the certain zoom
 create_leaflet_map <- function(mapdata, valuedata, dataType, lat_long = c(lat, long, zoom)) {
+  # custom data label
+  data_label <- paste0(
+    "<strong>", mapdata@data$region, "</strong><br/>",
+    # sprintf("Total Quantity: %0.2f%%<br/>", map_12$turnout * 100),
+    return_popupByDataType(mapdata@data, "Value"), "<br/>",
+    return_popupByDataType(mapdata@data, "Quantity")
+  ) %>% lapply(htmltools::HTML)
+  
+  
   country.colors <- get_binByDataType(valuedata, dataType)
   # Mapping the data
   mapdata %>%
     leaflet() %>%
-    addTiles() %>%
+    addProviderTiles(providers$Esri.WorldGrayCanvas) %>%
     addPolygons(
       fillColor = ~ country.colors(return_colByDataType(mapdata@data, dataType)), # We only use polygons for countries we may have actually used
       fillOpacity = .7,
       color = "black",
       opacity = 1,
       weight = 1,
-      label = ~region,
-      popup = ~ return_popupByDataType(mapdata@data, dataType),
+      label = data_label,
+      labelOptions = labelOptions(
+        style = list("font-weight" = "normal", padding = "3px 8px"),
+        textsize = "15px",
+        direction = "auto"),
+      # popup = ~ return_popupByDataType(mapdata@data, dataType),
       layerId = ~region
     ) %>%
     setView(lat = lat_long[1], lng = lat_long[2], zoom = lat_long[3]) %>%
