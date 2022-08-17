@@ -95,7 +95,7 @@ function(input, output, session) {
 
 
   output$Colors <- renderUI({
-    pre_unique <- str_split(unique(reactive_data()$colorList), ", ")
+    pre_unique <- str_split(unique(reactive_data()$textile_color_arch), ", ")
 
     list <- c()
     for (i in 1:length(pre_unique)) {
@@ -258,9 +258,9 @@ function(input, output, session) {
     choice <- get_regionChoice(regionChoice)
     totalValues <- filter_totalValue(joined.data, regionChoice, dataSet)
 
-    map.data@data <- left_join(map.data.original@data, # Join with the map data, using the original map data each time
+    map.data@data <- left_join(map.data@data, # Join with the map data, using the original map data each time
       totalValues,
-      by = c("ADMIN" = choice)
+      by = c("region" = choice)
     )
 
 
@@ -295,9 +295,9 @@ function(input, output, session) {
     choice <- get_regionChoice(regionChoice)
     totalValues <- filter_totalValue(joined.data, regionChoice, dataSet)
 
-    map.data@data <- left_join(map.data.original@data, # Join with the map data, using the original map data each time
+    map.data@data <- left_join(map.data@data, # Join with the map data, using the original map data each time
       totalValues,
-      by = c("ADMIN" = choice)
+      by = c("region" = choice)
     )
 
 
@@ -345,33 +345,33 @@ function(input, output, session) {
         filter(joined.data[choice] == name) %>%
         select(
           textile_quantity,
-          deb_dec,
+          total_value,
           all_of(modifier),
           company
         )
 
 
-      #   if(regionChoice == "Destination"){ #Only dest_country
+      #   if(regionChoice == "Destination"){ #Only dest_loc_shp
       #   pie.data <- joined.data %>%
-      #     filter(dest_country == name) %>%
+      #     filter(dest_loc_shp == name) %>%
       #     select(textile_quantity,
-      #            deb_dec,
+      #            total_value,
       #            all_of(modifier),
       #            company)
       # }
-      # else { #Only orig_country
+      # else { #Only orig_loc_shp
       #   pie.data <- joined.data %>%
-      #     filter(orig_country == name) %>%
+      #     filter(orig_loc_shp == name) %>%
       #     select(textile_quantity,
-      #            deb_dec,
+      #            total_value,
       #            all_of(modifier),
       #            company)
       # }
 
       # remove na of the selected columns to avoid errors
-      if (modifier == "colorList") {
+      if (modifier == "textile_color_arch") {
         pie.data <- pie.data %>%
-          mutate(colorList = ifelse(colorList == "No color indicated", NA, colorList))
+          mutate(textile_color_arch = ifelse(textile_color_arch == "No color indicated", NA, textile_color_arch))
       }
       pie.data <- pie.data %>%
         na.omit()
@@ -411,12 +411,12 @@ function(input, output, session) {
           ggplot() +
             ggtitle(label = paste(name, " has no data for these filters and ", names(modVec)[modVec == modifier], ".", sep = ""))
         }
-      } else { # This will do total value the same way, except graphing deb_dec
+      } else { # This will do total value the same way, except graphing total_value
         if (nrow(pie.data) != 0) {
           pie.data %>%
             ggplot(aes(
               x = "",
-              y = deb_dec
+              y = total_value
             )) +
             geom_bar(
               stat = "identity",
@@ -481,33 +481,33 @@ function(input, output, session) {
         filter(joined.data[choice] == name) %>%
         select(
           textile_quantity,
-          deb_dec,
+          total_value,
           all_of(modifier),
           company
         )
 
 
-      #   if(regionChoice == "Destination"){ #Only dest_country
+      #   if(regionChoice == "Destination"){ #Only dest_loc_shp
       #   pie.data <- joined.data %>%
-      #     filter(dest_country == name) %>%
+      #     filter(dest_loc_shp == name) %>%
       #     select(textile_quantity,
-      #            deb_dec,
+      #            total_value,
       #            all_of(modifier),
       #            company)
       # }
-      # else { #Only orig_country
+      # else { #Only orig_loc_shp
       #   pie.data <- joined.data %>%
-      #     filter(orig_country == name) %>%
+      #     filter(orig_loc_shp == name) %>%
       #     select(textile_quantity,
-      #            deb_dec,
+      #            total_value,
       #            all_of(modifier),
       #            company)
       # }
 
       # remove na of the selected columns to avoid errors
-      if (modifier == "colorList") {
+      if (modifier == "textile_color_arch") {
         pie.data <- pie.data %>%
-          mutate(colorList = ifelse(colorList == "No color indicated", NA, colorList))
+          mutate(textile_color_arch = ifelse(textile_color_arch == "No color indicated", NA, textile_color_arch))
       }
       pie.data <- pie.data %>%
         na.omit()
@@ -547,12 +547,12 @@ function(input, output, session) {
           ggplot() +
             ggtitle(label = paste(name, " has no data for these filters and ", names(modVec)[modVec == modifier], ".", sep = ""))
         }
-      } else { # This will do total value the same way, except graphing deb_dec
+      } else { # This will do total value the same way, except graphing total_value
         if (nrow(pie.data) != 0) {
           pie.data %>%
             ggplot(aes(
               x = "",
-              y = deb_dec
+              y = total_value
             )) +
             geom_bar(
               stat = "identity",
@@ -644,12 +644,12 @@ function(input, output, session) {
       
       if (regionChoice == "Destination") {
         bar.data <- joined.data %>%
-          filter(dest_country == name) %>%
+          filter(dest_loc_shp == name) %>%
           select(
-            dest_country,
-            orig_country,
+            dest_loc_shp,
+            orig_loc_shp,
             textile_quantity,
-            deb_dec,
+            total_value,
             orig_yr,
             dest_yr,
             all_of(modifier),
@@ -657,12 +657,12 @@ function(input, output, session) {
           )
       } else {
         bar.data <- joined.data %>%
-          filter(orig_country == name) %>%
+          filter(orig_loc_shp == name) %>%
           select(
-            dest_country,
-            orig_country,
+            dest_loc_shp,
+            orig_loc_shp,
             textile_quantity,
-            deb_dec,
+            total_value,
             orig_yr,
             dest_yr,
             all_of(modifier),
@@ -670,9 +670,9 @@ function(input, output, session) {
           )
       }
       
-      if (modifier == "colorList") {
+      if (modifier == "textile_color_arch") {
         bar.data <- bar.data %>%
-          mutate(colorList = ifelse(colorList == "No color indicated", NA, colorList))
+          mutate(textile_color_arch = ifelse(textile_color_arch == "No color indicated", NA, textile_color_arch))
       }
       
       bar.data <- bar.data %>%
@@ -687,30 +687,30 @@ function(input, output, session) {
       # if 2nd country
       if (!is.null(name2) && length(name2) != 0) {
         if (regionChoice == "Destination") {
-          values["modifierObj"] <- "dest_country"
-          values["modifier"] <- "dest_country"
+          values["modifierObj"] <- "dest_loc_shp"
+          values["modifier"] <- "dest_loc_shp"
           bar.data2 <- joined.data %>%
-            filter(dest_country == name2) %>%
+            filter(dest_loc_shp == name2) %>%
             select(
-              orig_country,
-              dest_country,
+              orig_loc_shp,
+              dest_loc_shp,
               textile_quantity,
-              deb_dec,
+              total_value,
               orig_yr,
               dest_yr,
               all_of(modifier),
               company
             )
         } else {
-          values["modifierObj"] <- "orig_country"
-          values["modifier"] <- "orig_country"
+          values["modifierObj"] <- "orig_loc_shp"
+          values["modifier"] <- "orig_loc_shp"
           bar.data2 <- joined.data %>%
-            filter(orig_country == name2) %>%
+            filter(orig_loc_shp == name2) %>%
             select(
-              orig_country,
-              dest_country,
+              orig_loc_shp,
+              dest_loc_shp,
               textile_quantity,
-              deb_dec,
+              total_value,
               orig_yr,
               dest_yr,
               all_of(modifier),
@@ -718,9 +718,9 @@ function(input, output, session) {
             )
         }
         
-        if (modifier == "colorList") {
+        if (modifier == "textile_color_arch") {
           bar.data2 <- bar.data2 %>%
-            mutate(colorList = ifelse(colorList == "No color indicated", NA, colorList))
+            mutate(textile_color_arch = ifelse(textile_color_arch == "No color indicated", NA, textile_color_arch))
         }
         
         bar.data2 <- bar.data2 %>%
@@ -735,17 +735,17 @@ function(input, output, session) {
         if (regionChoice == "Origin") {
           bind.data <<- bar.data %>%
             bind_rows(bar.data2) %>%
-            group_by(orig_country, orig_yr) %>%
+            group_by(orig_loc_shp, orig_yr) %>%
             summarise(
-              deb_dec = sum(deb_dec),
+              total_value = sum(total_value),
               textile_quantity = sum(textile_quantity)
             )
         } else {
           bind.data <<- bar.data %>%
             bind_rows(bar.data2) %>%
-            group_by(dest_country, dest_yr) %>%
+            group_by(dest_loc_shp, dest_yr) %>%
             summarise(
-              deb_dec = sum(deb_dec),
+              total_value = sum(total_value),
               textile_quantity = sum(textile_quantity)
             )
         }

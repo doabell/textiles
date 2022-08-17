@@ -16,7 +16,6 @@ library(readxl)
 library(rgdal)
 library(tidyverse)
 library(stringr)
-library(debkeepr)
 library(leaflet)
 library(viridis)
 library(jsonlite)
@@ -33,12 +32,8 @@ CONSTANTS <- c(
   "COLORS" = toString(c("white", "yellow", "red", "blue", "purple", "green", "black", "brown", "grey", "silver", "gold"))
 )
 
-# Read in the data
-joined.data.original <- read_csv("joined.csv")
-map.data.original <- readOGR("filteredCountries.GeoJSON")
-
 # make copies of original data
-joined.data <- joined.data.original
+joined.data <- readRDS("week4.rds")
 
 # convert JSON col to nonJSON
 # joined.data <- joined.data.original %>% mutate(colorList = vec_unflatten(colorList))
@@ -47,7 +42,7 @@ joined.data <- joined.data.original
 # Fix Facet Wrapping Issue (deal with this after presentation)
 # joined.data$textile_quality_inferred <- factor(joined.data$textile_quality_inferred,
 #                                              levels = c("Inexpensive", "Mid-Range", "Expensive"))
-map.data <- map.data.original
+map.data <- readRDS("hist_geo.rds")
 
 # modVec
 
@@ -55,11 +50,10 @@ map.data <- map.data.original
 modVec <- c(
   "Textile Name" = "textile_name",
   # "Color" = "colorGroup",
-  "Color" = "colorList",
+  "Color" = "textile_color_arch",
   "Pattern" = "textile_pattern_arch",
   "Process" = "textile_process_arch",
   "Fiber Type" = "textile_fiber_arch",
-  "Value Range" = "textile_quality_inferred",
   "Geography" = "textile_geography_arch",
   "Quality" = "textile_quality_arch"
 )

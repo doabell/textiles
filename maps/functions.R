@@ -98,16 +98,16 @@ clean_deb_values <- function(data, col) {
 # }
 
 # create deb dec col using debkeepr
-new_deb_dec_col <- function(data,
+new_total_value_col <- function(data,
                             l = "value_guldens",
                             s = "value_stuivers",
                             d = "value_penningen") {
-  return(data %>% mutate(deb_dec = as.numeric(deb_as_decimal(new_deb_lsd_col(data, l, s, d)))))
+  return(data %>% mutate(total_value = as.numeric(deb_as_decimal(new_deb_lsd_col(data, l, s, d)))))
 }
 
 # create deb dec from lsd
-deb_dec_from_lsd <- function(data, colname = "deb_lsd") {
-  return(data %>% mutate(deb_dec = as.numeric(deb_as_decimal(getElement(data, colname)))))
+total_value_from_lsd <- function(data, colname = "deb_lsd") {
+  return(data %>% mutate(total_value = as.numeric(deb_as_decimal(getElement(data, colname)))))
 }
 
 # return TRUE if numeric, FALSE if not numeric or factored
@@ -251,7 +251,7 @@ value_per_cols <- function(data) {
   #                                                   1,
   #                                                   data$texile_quantity))))
   return(data %>%
-    mutate(value_per_piece = ceiling(deb_dec / textile_quantity)) %>%
+    mutate(value_per_piece = ceiling(total_value / textile_quantity)) %>%
     mutate(textile_quality_inferred = ifelse(value_per_piece < 4,
       "Inexpensive",
       ifelse(value_per_piece >= 4 & value_per_piece <= 10,
@@ -588,7 +588,7 @@ get_col <- function(data, colname) {
 return_colByDataType <- function(data, dataType) {
   # return(switch(dataType,
   #               'Value'= get_col(data,'textile_quantity'),
-  #               'Quantity'= get_col(data,'deb_dec')))
+  #               'Quantity'= get_col(data,'total_value')))
 
 
   return(switch(dataType,
@@ -601,7 +601,7 @@ return_colByDataType <- function(data, dataType) {
 return_colnameByDataType <- function(dataType) {
   return(switch(dataType,
     "Value" = "textile_quantity",
-    "Quantity" = "deb_dec"
+    "Quantity" = "total_value"
   ))
 }
 
@@ -650,7 +650,7 @@ createBarChart <- function(data, input_vec, compare = NULL) { # dataType,year,mo
   if (dataType == "Quantity") {
     y_col <- data$textile_quantity
   } else {
-    y_col <- data$deb_dec
+    y_col <- data$total_value
   }
 
 
@@ -860,19 +860,19 @@ create_leaflet_map <- function(mapdata, valuedata, dataType, lat_long = c(lat, l
       color = "black",
       opacity = 1,
       weight = 1,
-      label = ~ADMIN,
+      label = ~region,
       popup = ~ return_popupByDataType(mapdata@data, dataType),
-      layerId = ~ADMIN
+      layerId = ~region
     ) %>%
     setView(lat = lat_long[1], lng = lat_long[2], zoom = lat_long[3]) %>%
     addLegend(
       pal = country.colors,
-      values = mapdata@data$ADMIN,
+      values = mapdata@data$region,
       title = return_titleByDataType(dataType)
     )
 }
 
-# problem here with group by dest_country
+# problem here with group by dest_loc_shp
 
 filter_totalValue <- function(data, region, dataSet) {
   choice <- get_regionChoice(region)
@@ -882,11 +882,11 @@ filter_totalValue <- function(data, region, dataSet) {
 
   data <- data %>% # Total values to graph things later on and color the map
     group_by_at(choice) %>%
-    select(choice, "textile_quantity", "deb_dec") %>%
+    select(choice, "textile_quantity", "total_value") %>%
     na.omit() %>%
     summarise(
       total_Quant = sum(textile_quantity),
-      total_Dec = sum(deb_dec)
+      total_Dec = sum(total_value)
     )
 
   return(data)
@@ -895,10 +895,10 @@ filter_totalValue <- function(data, region, dataSet) {
 # Grabs the column of interest
 get_regionCol <- function(data, region) {
   # if(region == "Destination"){
-  #   return(get_col(data,'dest_country'))
+  #   return(get_col(data,'dest_loc_shp'))
   # }
   # else if(region == "Origin"){
-  #   return(get_col(data,'orig_country'))
+  #   return(get_col(data,'orig_loc_shp'))
   # }
   # else{
   #   return(NULL)
@@ -911,9 +911,9 @@ get_regionCol <- function(data, region) {
 # grab the desired region
 get_regionChoice <- function(region) {
   if (region == "Destination") {
-    return("dest_country")
+    return("dest_loc_shp")
   } else if (region == "Origin") {
-    return("orig_country")
+    return("orig_loc_shp")
   } else {
     return(NULL)
   }
