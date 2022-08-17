@@ -1,9 +1,6 @@
 # Creating the UI
 fluidPage(
-  # theme = shinytheme("sandstone"),
-  titlePanel("Interactive Textile Explorer"),
   sidebarPanel( # All inputs will go in this sidebarPanel
-    h4("Explore different facets of the data by selecting inputs below:"),
     pickerInput(
       inputId = "dataSet",
       label = "Choose company of interest",
