@@ -611,7 +611,7 @@ return_colnameByDataType <- function(dataType) {
 
 
 
-createBarChart <- function(data, input_vec) { # dataType,year,modVec,regionChoice,modifier){
+createBarChart <- function(data, input_vec, compare = NULL) { # dataType,year,modVec,regionChoice,modifier){
 
   countryName <- input_vec["name"]
   modifier <- input_vec["modifier"]
@@ -655,7 +655,13 @@ createBarChart <- function(data, input_vec) { # dataType,year,modVec,regionChoic
 
 
 
-
+ if(length(compare) != 0){
+   
+     plotLabel <- paste("Textiles of", countryName, "and", compare, "with these filters.")
+   # modifierObj <- 
+ } else {
+   plotLabel <- paste(modifierObj, "distribution for", countryName, "with these filters.")
+ }
   if (nrow(data) != 0) {
     bar_plot <- data %>%
       ggplot(
@@ -681,7 +687,7 @@ createBarChart <- function(data, input_vec) { # dataType,year,modVec,regionChoic
         option = "magma"
       ) +
       theme_bw() +
-      ggtitle(label = paste(modifierObj, "distribution for", countryName, "with these filters."))
+      ggtitle(label = plotLabel)
 
 
     return(bar_plot)

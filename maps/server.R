@@ -221,7 +221,7 @@ function(input, output, session) {
       paste(input$dataSet, ".xls", sep = "")
     },
     content = function(file) {
-      write_excel_csv(
+      write_csv(
 
         # isolate(filter_by_inputs(joined.data.original,isolate(input)))
 
@@ -586,7 +586,8 @@ function(input, output, session) {
   # Rendering the bar chart - this works nearly the exact same way as the pie chart
   # except when it is graphing the outputs, it is doing so with a bar chart instead of a pie chart
   output$barChart <- renderPlot({
-    name <- input$countriesMap_shape_click$id
+    name <<- input$countriesMap_shape_click$id
+    name2 <<- input$countriesMap2_shape_click$id
 
     values <- c()
 
@@ -639,11 +640,14 @@ function(input, output, session) {
 
       # joined.data <- isolate(filter_by_inputs(joined.data,isolate(input)))
 
-
+      
+      
       if (regionChoice == "Destination") {
         bar.data <- joined.data %>%
           filter(dest_country == name) %>%
           select(
+            dest_country,
+            orig_country,
             textile_quantity,
             deb_dec,
             orig_yr,
@@ -655,6 +659,8 @@ function(input, output, session) {
         bar.data <- joined.data %>%
           filter(orig_country == name) %>%
           select(
+            dest_country,
+            orig_country,
             textile_quantity,
             deb_dec,
             orig_yr,
@@ -663,24 +669,93 @@ function(input, output, session) {
             company
           )
       }
-
-
+      
       if (modifier == "colorList") {
         bar.data <- bar.data %>%
           mutate(colorList = ifelse(colorList == "No color indicated", NA, colorList))
       }
-
+      
       bar.data <- bar.data %>%
         na.omit()
-
-
+      
+      
       if (dataSet != "Both") {
         bar.data <- bar.data %>%
           filter(company == dataSet)
       }
 
-      # ggplotly
-      createBarChart(bar.data, values)
+      # if 2nd country
+      if (!is.null(name2) && length(name2) != 0) {
+        if (regionChoice == "Destination") {
+          values["modifierObj"] <- "dest_country"
+          values["modifier"] <- "dest_country"
+          bar.data2 <- joined.data %>%
+            filter(dest_country == name2) %>%
+            select(
+              orig_country,
+              dest_country,
+              textile_quantity,
+              deb_dec,
+              orig_yr,
+              dest_yr,
+              all_of(modifier),
+              company
+            )
+        } else {
+          values["modifierObj"] <- "orig_country"
+          values["modifier"] <- "orig_country"
+          bar.data2 <- joined.data %>%
+            filter(orig_country == name2) %>%
+            select(
+              orig_country,
+              dest_country,
+              textile_quantity,
+              deb_dec,
+              orig_yr,
+              dest_yr,
+              all_of(modifier),
+              company
+            )
+        }
+        
+        if (modifier == "colorList") {
+          bar.data2 <- bar.data2 %>%
+            mutate(colorList = ifelse(colorList == "No color indicated", NA, colorList))
+        }
+        
+        bar.data2 <- bar.data2 %>%
+          na.omit()
+        
+        
+        if (dataSet != "Both") {
+          bar.data2 <- bar.data2 %>%
+            filter(company == dataSet)
+        }
+        
+        if (regionChoice == "Origin") {
+          bind.data <<- bar.data %>%
+            bind_rows(bar.data2) %>%
+            group_by(orig_country, orig_yr) %>%
+            summarise(
+              deb_dec = sum(deb_dec),
+              textile_quantity = sum(textile_quantity)
+            )
+        } else {
+          bind.data <<- bar.data %>%
+            bind_rows(bar.data2) %>%
+            group_by(dest_country, dest_yr) %>%
+            summarise(
+              deb_dec = sum(deb_dec),
+              textile_quantity = sum(textile_quantity)
+            )
+        }
+        createBarChart(bind.data, values, name2)
+      } else {
+        # no 2nd country
+        # ggplotly
+        createBarChart(bar.data, values)
+      }
+      
     } else {
       ggplot() +
         ggtitle(label = paste("No data for these filters."))
