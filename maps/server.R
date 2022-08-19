@@ -14,8 +14,10 @@ function(input, output, session) {
   # )
   #
 
-
-
+  # Refresh page
+  observeEvent(input$refresh, {
+    session$reload()
+  })
 
 
 

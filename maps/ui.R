@@ -21,6 +21,7 @@ fluidPage(
       )
     ),
     uiOutput("twoRegions"),
+    actionButton("refresh", label = "Reset All", icon = icon("redo")),
     radioGroupButtons(
       inputId = "regionChoice",
       label = "Select these regions as...",
