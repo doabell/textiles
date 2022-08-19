@@ -40,13 +40,20 @@ for (i in 1:length(jsons)) {
     mutate(region = name)
   if (i == 1) {
     joined <- geo
-    
   } else {
     joined %<>%
       raster::union(geo)
   }
 }
 
+# remove duplicates
+joined@data <- joined@data %>%
+  unite("region",
+    starts_with("region"),
+    na.rm = TRUE,
+    remove = FALSE
+  ) %>%
+  dplyr::select(region)
 
 # call it a day
 joined %>%
