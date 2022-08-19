@@ -135,10 +135,10 @@ week4 %<>%
     means_of_exchange,
     orig_yr,
     dest_yr,
+    orig_loc_region_modern,
     orig_loc_abr,
-    orig_loc_shp,
+    dest_loc_region,
     dest_loc_abr,
-    dest_loc_shp,
     starts_with("textile"),
     total_value,
     price_per_unit

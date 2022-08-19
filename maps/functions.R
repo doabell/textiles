@@ -887,7 +887,7 @@ create_leaflet_map <- function(mapdata, valuedata, dataType, lat_long = c(lat, l
     )
 }
 
-# problem here with group by dest_loc_shp
+# problem here with group by dest_loc_region
 
 filter_totalValue <- function(data, region, dataSet) {
   choice <- get_regionChoice(region)
@@ -910,10 +910,10 @@ filter_totalValue <- function(data, region, dataSet) {
 # Grabs the column of interest
 get_regionCol <- function(data, region) {
   # if(region == "Destination"){
-  #   return(get_col(data,'dest_loc_shp'))
+  #   return(get_col(data,'dest_loc_region'))
   # }
   # else if(region == "Origin"){
-  #   return(get_col(data,'orig_loc_shp'))
+  #   return(get_col(data,'orig_loc_region_modern'))
   # }
   # else{
   #   return(NULL)
@@ -926,9 +926,9 @@ get_regionCol <- function(data, region) {
 # grab the desired region
 get_regionChoice <- function(region) {
   if (region == "Destination") {
-    return("dest_loc_shp")
+    return("dest_loc_region")
   } else if (region == "Origin") {
-    return("orig_loc_shp")
+    return("orig_loc_region_modern")
   } else {
     return(NULL)
   }
@@ -1067,3 +1067,4 @@ get_regionChoice <- function(region) {
 #   )
 #   )
 #
+

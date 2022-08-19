@@ -351,17 +351,17 @@ function(input, output, session) {
         )
 
 
-      #   if(regionChoice == "Destination"){ #Only dest_loc_shp
+      #   if(regionChoice == "Destination"){ #Only dest_loc_region
       #   pie.data <- joined.data %>%
-      #     filter(dest_loc_shp == name) %>%
+      #     filter(dest_loc_region == name) %>%
       #     select(textile_quantity,
       #            total_value,
       #            all_of(modifier),
       #            company)
       # }
-      # else { #Only orig_loc_shp
+      # else { #Only orig_loc_region_modern
       #   pie.data <- joined.data %>%
-      #     filter(orig_loc_shp == name) %>%
+      #     filter(orig_loc_region_modern == name) %>%
       #     select(textile_quantity,
       #            total_value,
       #            all_of(modifier),
@@ -492,17 +492,17 @@ function(input, output, session) {
         )
 
 
-      #   if(regionChoice == "Destination"){ #Only dest_loc_shp
+      #   if(regionChoice == "Destination"){ #Only dest_loc_region
       #   pie.data <- joined.data %>%
-      #     filter(dest_loc_shp == name) %>%
+      #     filter(dest_loc_region == name) %>%
       #     select(textile_quantity,
       #            total_value,
       #            all_of(modifier),
       #            company)
       # }
-      # else { #Only orig_loc_shp
+      # else { #Only orig_loc_region_modern
       #   pie.data <- joined.data %>%
-      #     filter(orig_loc_shp == name) %>%
+      #     filter(orig_loc_region_modern == name) %>%
       #     select(textile_quantity,
       #            total_value,
       #            all_of(modifier),
@@ -653,10 +653,10 @@ function(input, output, session) {
       
       if (regionChoice == "Destination") {
         bar.data <- joined.data %>%
-          filter(dest_loc_shp == name) %>%
+          filter(dest_loc_region == name) %>%
           select(
-            dest_loc_shp,
-            orig_loc_shp,
+            dest_loc_region,
+            orig_loc_region_modern,
             textile_quantity,
             total_value,
             orig_yr,
@@ -666,10 +666,10 @@ function(input, output, session) {
           )
       } else {
         bar.data <- joined.data %>%
-          filter(orig_loc_shp == name) %>%
+          filter(orig_loc_region_modern == name) %>%
           select(
-            dest_loc_shp,
-            orig_loc_shp,
+            dest_loc_region,
+            orig_loc_region_modern,
             textile_quantity,
             total_value,
             orig_yr,
@@ -696,13 +696,13 @@ function(input, output, session) {
       # if 2nd country
       if (!is.null(name2) && length(name2) != 0) {
         if (regionChoice == "Destination") {
-          values["modifierObj"] <- "dest_loc_shp"
-          values["modifier"] <- "dest_loc_shp"
+          values["modifierObj"] <- "dest_loc_region"
+          values["modifier"] <- "dest_loc_region"
           bar.data2 <- joined.data %>%
-            filter(dest_loc_shp == name2) %>%
+            filter(dest_loc_region == name2) %>%
             select(
-              orig_loc_shp,
-              dest_loc_shp,
+              orig_loc_region_modern,
+              dest_loc_region,
               textile_quantity,
               total_value,
               orig_yr,
@@ -711,13 +711,13 @@ function(input, output, session) {
               company
             )
         } else {
-          values["modifierObj"] <- "orig_loc_shp"
-          values["modifier"] <- "orig_loc_shp"
+          values["modifierObj"] <- "orig_loc_region_modern"
+          values["modifier"] <- "orig_loc_region_modern"
           bar.data2 <- joined.data %>%
-            filter(orig_loc_shp == name2) %>%
+            filter(orig_loc_region_modern == name2) %>%
             select(
-              orig_loc_shp,
-              dest_loc_shp,
+              orig_loc_region_modern,
+              dest_loc_region,
               textile_quantity,
               total_value,
               orig_yr,
@@ -744,7 +744,7 @@ function(input, output, session) {
         if (regionChoice == "Origin") {
           bind.data <<- bar.data %>%
             bind_rows(bar.data2) %>%
-            group_by(orig_loc_shp, orig_yr) %>%
+            group_by(orig_loc_region_modern, orig_yr) %>%
             summarise(
               total_value = sum(total_value),
               textile_quantity = sum(textile_quantity)
@@ -752,7 +752,7 @@ function(input, output, session) {
         } else {
           bind.data <<- bar.data %>%
             bind_rows(bar.data2) %>%
-            group_by(dest_loc_shp, dest_yr) %>%
+            group_by(dest_loc_region, dest_yr) %>%
             summarise(
               total_value = sum(total_value),
               textile_quantity = sum(textile_quantity)
