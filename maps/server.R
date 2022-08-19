@@ -848,7 +848,7 @@ function(input, output, session) {
     joined.data <- reactive_data()
 
 
-    if (!is.null(name) && length(name) != 0) {
+    if (!is.null(name) && length(name) != 0 && !is.null(name2) && length(name2) != 0) {
       # Make permanent
       # Because all rows have "textile_name", although this does not appear
       modifier <- "textile_name"
@@ -898,6 +898,10 @@ function(input, output, session) {
 
 
       if (regionChoice == "Destination") {
+        values["modifierObj"] <- "dest_loc_region"
+        values["modifier"] <- "dest_loc_region"
+
+        # region 1
         bar.data <- joined.data %>%
           filter(dest_loc_region == name) %>%
           select(
@@ -910,7 +914,25 @@ function(input, output, session) {
             all_of(modifier),
             company
           )
+
+        # region 2
+        bar.data2 <- joined.data %>%
+          filter(dest_loc_region == name2) %>%
+          select(
+            orig_loc_region_modern,
+            dest_loc_region,
+            textile_quantity,
+            total_value,
+            orig_yr,
+            dest_yr,
+            all_of(modifier),
+            company
+          )
       } else {
+        values["modifierObj"] <- "orig_loc_region_modern"
+        values["modifier"] <- "orig_loc_region_modern"
+
+        # region 1
         bar.data <- joined.data %>%
           filter(orig_loc_region_modern == name) %>%
           select(
@@ -923,97 +945,64 @@ function(input, output, session) {
             all_of(modifier),
             company
           )
+        # region 2
+        bar.data2 <- joined.data %>%
+          filter(orig_loc_region_modern == name2) %>%
+          select(
+            orig_loc_region_modern,
+            dest_loc_region,
+            textile_quantity,
+            total_value,
+            orig_yr,
+            dest_yr,
+            all_of(modifier),
+            company
+          )
       }
 
       if (modifier == "textile_color_arch") {
         bar.data <- bar.data %>%
           mutate(textile_color_arch = ifelse(textile_color_arch == "No color indicated", NA, textile_color_arch))
+        bar.data2 <- bar.data2 %>%
+          mutate(textile_color_arch = ifelse(textile_color_arch == "No color indicated", NA, textile_color_arch))
       }
 
       bar.data <- bar.data %>%
+        na.omit()
+      bar.data2 <- bar.data2 %>%
         na.omit()
 
 
       if (dataSet != "Both") {
         bar.data <- bar.data %>%
           filter(company == dataSet)
-      }
-
-      # if 2nd country
-      if (!is.null(name2) && length(name2) != 0) {
-        if (regionChoice == "Destination") {
-          values["modifierObj"] <- "dest_loc_region"
-          values["modifier"] <- "dest_loc_region"
-          bar.data2 <- joined.data %>%
-            filter(dest_loc_region == name2) %>%
-            select(
-              orig_loc_region_modern,
-              dest_loc_region,
-              textile_quantity,
-              total_value,
-              orig_yr,
-              dest_yr,
-              all_of(modifier),
-              company
-            )
-        } else {
-          values["modifierObj"] <- "orig_loc_region_modern"
-          values["modifier"] <- "orig_loc_region_modern"
-          bar.data2 <- joined.data %>%
-            filter(orig_loc_region_modern == name2) %>%
-            select(
-              orig_loc_region_modern,
-              dest_loc_region,
-              textile_quantity,
-              total_value,
-              orig_yr,
-              dest_yr,
-              all_of(modifier),
-              company
-            )
-        }
-
-        if (modifier == "textile_color_arch") {
-          bar.data2 <- bar.data2 %>%
-            mutate(textile_color_arch = ifelse(textile_color_arch == "No color indicated", NA, textile_color_arch))
-        }
-
         bar.data2 <- bar.data2 %>%
-          na.omit()
-
-
-        if (dataSet != "Both") {
-          bar.data2 <- bar.data2 %>%
-            filter(company == dataSet)
-        }
-
-        if (regionChoice == "Origin") {
-          bind.data <<- bar.data %>%
-            bind_rows(bar.data2) %>%
-            group_by(orig_loc_region_modern, orig_yr) %>%
-            summarise(
-              total_value = sum(total_value),
-              textile_quantity = sum(textile_quantity)
-            )
-        } else {
-          bind.data <<- bar.data %>%
-            bind_rows(bar.data2) %>%
-            group_by(dest_loc_region, dest_yr) %>%
-            summarise(
-              total_value = sum(total_value),
-              textile_quantity = sum(textile_quantity)
-            )
-        }
-        createBarChartCompare(bind.data, values, name2)
-      } else {
-        # no 2nd country
-        # ggplotly
-        createBarChartCompare(bar.data, values)
+          filter(company == dataSet)
       }
+
+
+      if (regionChoice == "Origin") {
+        bind.data <<- bar.data %>%
+          bind_rows(bar.data2) %>%
+          group_by(orig_loc_region_modern, orig_yr) %>%
+          summarise(
+            total_value = sum(total_value),
+            textile_quantity = sum(textile_quantity)
+          )
+      } else {
+        bind.data <<- bar.data %>%
+          bind_rows(bar.data2) %>%
+          group_by(dest_loc_region, dest_yr) %>%
+          summarise(
+            total_value = sum(total_value),
+            textile_quantity = sum(textile_quantity)
+          )
+      }
+      createBarChartCompare(bind.data, values, name2)
     } else {
       ggplot() +
         theme(text = element_text(family = "Lato", size = 15)) +
-        ggtitle(label = paste("Select regions with data for these textiles in order to display a bar chart here"))
+        ggtitle(label = paste("Select regions with data for these textiles in order to display a bar chart here."))
     }
   })
 } # function(input, output, session) {
