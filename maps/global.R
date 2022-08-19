@@ -60,3 +60,13 @@ modVec <- c(
   "Geography" = "textile_geography_arch",
   "Quality" = "textile_quality_arch"
 )
+
+# Limit 2e+05 notation
+# There is a better way with 
+# require(scales)
+# ggplot() + scale_x_continuous(labels = comma)
+# But being lazy for now
+# https://stackoverflow.com/questions/14563989/
+
+# For digits, see ?format
+options(scipen=5, digits = 2)

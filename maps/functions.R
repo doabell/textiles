@@ -699,7 +699,7 @@ createBarChartCompare <- function(data, input_vec, compare) { # dataType,year,mo
   # This is because output$barChartCompare uses the filtered data (and because it removes NA?)
   # Ask about copying individual bar charts (easy) or use quantity throughout (another dataset from reactive? maybe do this in the rewrite)
 
-  # TODO extras: make interactive with ggplotly (or just plot_ly); clear all button; format ticks like "2e+05"; hide NA modifiers from choose dropdown
+  # TODO extras: make interactive with ggplotly (or just plot_ly); clear all button; hide NA modifiers from choose dropdown; show top 9 textiles and "others"? (see Sri Lanka for example)
 
   regionName <- input_vec["name"]
   modifier <- input_vec["modifier"]
