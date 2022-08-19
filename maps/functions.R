@@ -678,7 +678,11 @@ createBarChart <- function(data, input_vec) { # dataType,year,modVec,regionChoic
         option = "magma"
       ) +
       theme_bw() +
-      theme(text = element_text(family = "Lato", size = 15)) +
+      theme(text = element_text(family = "Lato", size = 15), legend.position = "bottom") +
+      guides(fill = guide_legend(
+        title.position = "top",
+        ncol = 7
+      )) +
       ggtitle(label = paste(modifierObj, "distribution for", regionName, "with these filters."))
 
 
@@ -699,7 +703,8 @@ createBarChartCompare <- function(data, input_vec, compare) { # dataType,year,mo
   # This is because output$barChartCompare uses the filtered data (and because it removes NA?)
   # Ask about copying individual bar charts (easy) or use quantity throughout (another dataset from reactive? maybe do this in the rewrite)
 
-  # TODO extras: make interactive with ggplotly (or just plot_ly); clear all button; hide NA modifiers from choose dropdown; show top 9 textiles and "others"? (see Sri Lanka for example)
+  # TODO extras: make interactive with ggplotly (or just plot_ly)
+  # fix "17" bug in year - might be a 17xx in data
 
   regionName <- input_vec["name"]
   modifier <- input_vec["modifier"]
@@ -771,7 +776,11 @@ createBarChartCompare <- function(data, input_vec, compare) { # dataType,year,mo
         option = "magma"
       ) +
       theme_bw() +
-      theme(text = element_text(family = "Lato", size = 15)) +
+      theme(text = element_text(family = "Lato", size = 15), legend.position = "bottom") +
+      guides(fill = guide_legend(
+        title.position = "top",
+        ncol = 7
+      )) +
       ggtitle(label = plotLabel)
 
 

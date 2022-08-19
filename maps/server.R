@@ -243,7 +243,7 @@ function(input, output, session) {
   # Downloadable .xls of table dataset
   output$downloadData <- downloadHandler(
     filename = function() {
-      paste(input$dataSet, ".xls", sep = "")
+      paste(input$dataSet, ".csv", sep = "")
     },
     content = function(file) {
       write_csv(
@@ -431,7 +431,11 @@ function(input, output, session) {
               option = "magma"
             ) +
             theme_void() +
-            theme(text = element_text(family = "Lato", size = 15)) +
+            theme(text = element_text(family = "Lato", size = 15), legend.position = "bottom") +
+            guides(fill = guide_legend(
+              title.position = "top",
+              ncol = 7
+            )) +
             ggtitle(label = paste(names(modVec)[modVec == modifier], "distribution for", name, "with these filters."))
         } else { # No rows were found
           ggplot() +
@@ -462,7 +466,11 @@ function(input, output, session) {
               option = "magma"
             ) +
             theme_void() +
-            theme(text = element_text(family = "Lato", size = 15)) +
+            theme(text = element_text(family = "Lato", size = 15), legend.position = "bottom") +
+            guides(fill = guide_legend(
+              title.position = "top",
+              ncol = 7
+            )) +
             ggtitle(label = paste(names(modVec)[modVec == modifier], "monetary distribution for", name, "with these filters."))
         } else {
           ggplot() +
@@ -572,7 +580,11 @@ function(input, output, session) {
               option = "magma"
             ) +
             theme_void() +
-            theme(text = element_text(family = "Lato", size = 15)) +
+            theme(text = element_text(family = "Lato", size = 15), legend.position = "bottom") +
+            guides(fill = guide_legend(
+              title.position = "top",
+              ncol = 7
+            )) +
             ggtitle(label = paste(names(modVec)[modVec == modifier], "distribution for", name, "with these filters."))
         } else { # No rows were found
           ggplot() +
@@ -603,7 +615,11 @@ function(input, output, session) {
               option = "magma"
             ) +
             theme_void() +
-            theme(text = element_text(family = "Lato", size = 15)) +
+            theme(text = element_text(family = "Lato", size = 15), legend.position = "bottom") +
+            guides(fill = guide_legend(
+              title.position = "top",
+              ncol = 7
+            )) +
             ggtitle(label = paste(names(modVec)[modVec == modifier], "monetary distribution for", name, "with these filters."))
         } else {
           ggplot() +
