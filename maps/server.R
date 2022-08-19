@@ -102,17 +102,18 @@ function(input, output, session) {
       list <- append(list, pre_unique[[i]])
     }
 
-    color_choices <- unique(as.vector(list))
+    color_choices <- unique(as.vector(list))%>%
+      setdiff(c(NA))
 
 
-
+    if (length(color_choices) != 0) {
     selectizeInput(
       inputId = "colors",
       label = "Choose color(s) of interest",
       choices = color_choices,
       selected = input$colors,
       multiple = TRUE
-    )
+    )}
   })
 
 
@@ -120,37 +121,45 @@ function(input, output, session) {
 
   output$Pattern <- renderUI({
     patterns <-
-      unique(as.vector(reactive_data()$textile_pattern_arch))
+      unique(as.vector(reactive_data()$textile_pattern_arch))%>%
+      setdiff(c(NA))
 
+    if (length(patterns) != 0) {
     selectizeInput(
       inputId = "Pattern",
       label = "Choose pattern(s) of interest",
       choices = patterns,
       selected = input$patterns,
       multiple = TRUE
-    )
+    )}
   })
 
 
   output$Process <- renderUI({
+    processes <- levels(factor(reactive_data()$textile_process_arch)) %>%
+      setdiff(c(NA))
+    if (length(processes) != 0) {
     selectizeInput(
       inputId = "process",
       label = "Choose process(es) of interest",
-      choices = levels(factor(reactive_data()$textile_process_arch)),
+      choices = processes,
       selected = input$process,
       multiple = TRUE
-    )
+    )}
   })
 
 
   output$Fibers <- renderUI({
+    fiberchoice <- levels(factor(reactive_data()$textile_fiber_arch)) %>%
+      setdiff(c(NA))
+    if (length(fiberchoice) != 0) {
     selectizeInput(
       inputId = "fibers",
       label = "Choose fiber(s) of interest",
-      choices = levels(factor(reactive_data()$textile_fiber_arch)),
+      choices = fiberchoice,
       selected = input$fibers,
       multiple = TRUE
-    )
+    )}
   })
 
   # output$InferredQualities <- renderUI({
@@ -166,31 +175,38 @@ function(input, output, session) {
   # })
 
   output$Geography <- renderUI({
+    geos <- levels(factor(reactive_data()$textile_geography_arch)) %>%
+      setdiff(c(NA))
+    if (length(geos) != 0) {
     selectizeInput(
       inputId = "geography",
       label = "Choose geography of interest",
-      choices = levels(factor(reactive_data()$textile_geography_arch)),
+      choices = geos,
       selected = input$geography,
       multiple = TRUE
-    )
+    )}
   })
 
   output$Qualities <- renderUI({
-    user_choices <- levels(factor(joined.data$textile_quality_arch))
+    qual <- levels(factor(joined.data$textile_quality_arch))%>%
+      setdiff(c(NA))
 
-
+    if (length(qual) != 0) {
     selectizeInput(
       inputId = "qualities",
       label = "Choose quality(s) of interest",
-      choices = user_choices,
+      choices = qual,
       selected = input$qualities,
       multiple = TRUE
-    )
+    )}
   })
 
   output$Year <- renderUI({
-    user_choices <- levels(factor(c(reactive_data()$orig_yr, reactive_data()$dest_yr)))
+    user_choices <- levels(factor(c(reactive_data()$orig_yr, reactive_data()$dest_yr)))%>%
+      setdiff(c(NA))
 
+    # should always have a year
+    # if (length(user_choices) != 0) {
     selectizeInput(
       inputId = "year",
       label = "Year:",
@@ -198,6 +214,7 @@ function(input, output, session) {
       selected = input$year,
       multiple = TRUE
     )
+      # }
 
     # user_choices in input year
   })
