@@ -21,10 +21,10 @@ fluidPage(
         subtext = c("VOC & WIC", "East India Company", "West India Company")
       )
     ),
-    uiOutput("twoCountries"),
+    uiOutput("twoRegions"),
     radioGroupButtons(
       inputId = "regionChoice",
-      label = "Select these countries as...",
+      label = "Select these regions as...",
       # choices = c("Origin", "Destination"),
       choices = c(`<i class='fa fa-plane-departure'></i> Origin` = "Origin", `<i class='fa fa-plane-arrival'></i> Destination` = "Destination"),
       selected = "Origin",
@@ -112,23 +112,23 @@ fluidPage(
   mainPanel(
     tabsetPanel( # All of the outputs go here (map/graphs, data tables)
       tabPanel(
-        title = "Map Explorer",
+        title = "Maps",
         tabsetPanel(
           tabPanel(
-            title = "Country 1",
-            leafletOutput(outputId = "countriesMap"),
+            title = "Region 1",
+            leafletOutput(outputId = "regionMap"),
             plotOutput(outputId = "pieChart"),
           ),
           tabPanel(
-            title = "Country 2",
-            leafletOutput(outputId = "countriesMap2"),
+            title = "Region 2",
+            leafletOutput(outputId = "regionMap2"),
             plotOutput(outputId = "pieChart2"),
           )
         ),
         plotOutput(outputId = "barChart")
       ),
       tabPanel(
-        title = "Table Explorer",
+        title = "Data Table",
         dataTableOutput("update_inputs"),
         downloadButton("downloadData", "Download Table") # download button
       )

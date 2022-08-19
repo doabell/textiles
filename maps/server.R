@@ -66,20 +66,20 @@ function(input, output, session) {
     return(data)
   })
   
-  output$twoCountries <- renderUI({
+  output$twoRegions <- renderUI({
     c1 <- ifelse(
-      length(input$countriesMap_shape_click$id) != 0,
-      input$countriesMap_shape_click$id,
-      "Not Selected"
+      length(input$regionMap_shape_click$id) != 0,
+      input$regionMap_shape_click$id,
+      "Select on map"
        )
     c2 <- ifelse(
-      length(input$countriesMap2_shape_click$id) != 0,
-      input$countriesMap2_shape_click$id,
-      "Not Selected"
+      length(input$regionMap2_shape_click$id) != 0,
+      input$regionMap2_shape_click$id,
+      "Select on map"
     )
     tagList(
-    tags$p(tags$b("Country 1: "), c1),
-    tags$p(tags$b("Country 2: "), c2))
+    tags$p(tags$b("Region 1: "), c1),
+    tags$p(tags$b("Region 2: "), c2))
     
   })
   
@@ -231,7 +231,7 @@ function(input, output, session) {
   )
 
   # The map of countries to be rendered
-  output$countriesMap <- renderLeaflet({
+  output$regionMap <- renderLeaflet({
 
     # reading in all of the inputs, isolating them
     dataSet <- input$dataSet
@@ -268,7 +268,7 @@ function(input, output, session) {
     create_leaflet_map(map.data, totalValues, dataType, c(30, 53, 2))
   })
 
-  output$countriesMap2 <- renderLeaflet({
+  output$regionMap2 <- renderLeaflet({
 
     # reading in all of the inputs, isolating them
     dataSet <- input$dataSet
@@ -312,7 +312,7 @@ function(input, output, session) {
 
   # Used to render the plot for pie chart
   output$pieChart <- renderPlot({
-    name <- input$countriesMap_shape_click$id
+    name <- input$regionMap_shape_click$id
 
     # only want to do this if they clicked on a country
     if (length(name) != 0) {
@@ -448,12 +448,12 @@ function(input, output, session) {
     } else { # This comes up if they have not clicked any countries
       ggplot() +
         theme(text = element_text(family = "Lato", size = 15)) +
-        ggtitle(label = "Select a country with data for these textiles in order to display a pie chart here.")
+        ggtitle(label = "Select a region with data for these textiles in order to display a pie chart here.")
     }
   })
 
   output$pieChart2 <- renderPlot({
-    name <- input$countriesMap2_shape_click$id
+    name <- input$regionMap2_shape_click$id
 
     # only want to do this if they clicked on a country
     if (length(name) != 0) {
@@ -588,15 +588,16 @@ function(input, output, session) {
       }
     } else { # This comes up if they have not clicked any countries
       ggplot() +
-        ggtitle(label = "Select a country with data for these textiles in order to display a pie chart here.")
+        theme(text = element_text(family = "Lato", size = 15)) +
+        ggtitle(label = "Select a region with data for these textiles in order to display a pie chart here.")
     }
   })
 
   # Rendering the bar chart - this works nearly the exact same way as the pie chart
   # except when it is graphing the outputs, it is doing so with a bar chart instead of a pie chart
   output$barChart <- renderPlot({
-    name <<- input$countriesMap_shape_click$id
-    name2 <<- input$countriesMap2_shape_click$id
+    name <<- input$regionMap_shape_click$id
+    name2 <<- input$regionMap2_shape_click$id
 
     values <- c()
 
