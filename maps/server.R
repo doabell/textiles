@@ -65,24 +65,24 @@ function(input, output, session) {
 
     return(data)
   })
-  
+
   output$twoRegions <- renderUI({
     c1 <- ifelse(
       length(input$regionMap_shape_click$id) != 0,
       input$regionMap_shape_click$id,
       "Select on map"
-       )
+    )
     c2 <- ifelse(
       length(input$regionMap2_shape_click$id) != 0,
       input$regionMap2_shape_click$id,
       "Select on map"
     )
     tagList(
-    tags$p(tags$b("Region 1: "), c1),
-    tags$p(tags$b("Region 2: "), c2))
-    
+      tags$p(tags$b("Region 1: "), c1),
+      tags$p(tags$b("Region 2: "), c2)
+    )
   })
-  
+
   output$TextileName <- renderUI({
     selectizeInput(
       inputId = "textileName",
@@ -102,18 +102,19 @@ function(input, output, session) {
       list <- append(list, pre_unique[[i]])
     }
 
-    color_choices <- unique(as.vector(list))%>%
+    color_choices <- unique(as.vector(list)) %>%
       setdiff(c(NA))
 
 
     if (length(color_choices) != 0) {
-    selectizeInput(
-      inputId = "colors",
-      label = "Choose color(s) of interest",
-      choices = color_choices,
-      selected = input$colors,
-      multiple = TRUE
-    )}
+      selectizeInput(
+        inputId = "colors",
+        label = "Choose color(s) of interest",
+        choices = color_choices,
+        selected = input$colors,
+        multiple = TRUE
+      )
+    }
   })
 
 
@@ -121,17 +122,18 @@ function(input, output, session) {
 
   output$Pattern <- renderUI({
     patterns <-
-      unique(as.vector(reactive_data()$textile_pattern_arch))%>%
+      unique(as.vector(reactive_data()$textile_pattern_arch)) %>%
       setdiff(c(NA))
 
     if (length(patterns) != 0) {
-    selectizeInput(
-      inputId = "Pattern",
-      label = "Choose pattern(s) of interest",
-      choices = patterns,
-      selected = input$patterns,
-      multiple = TRUE
-    )}
+      selectizeInput(
+        inputId = "Pattern",
+        label = "Choose pattern(s) of interest",
+        choices = patterns,
+        selected = input$patterns,
+        multiple = TRUE
+      )
+    }
   })
 
 
@@ -139,13 +141,14 @@ function(input, output, session) {
     processes <- levels(factor(reactive_data()$textile_process_arch)) %>%
       setdiff(c(NA))
     if (length(processes) != 0) {
-    selectizeInput(
-      inputId = "process",
-      label = "Choose process(es) of interest",
-      choices = processes,
-      selected = input$process,
-      multiple = TRUE
-    )}
+      selectizeInput(
+        inputId = "process",
+        label = "Choose process(es) of interest",
+        choices = processes,
+        selected = input$process,
+        multiple = TRUE
+      )
+    }
   })
 
 
@@ -153,13 +156,14 @@ function(input, output, session) {
     fiberchoice <- levels(factor(reactive_data()$textile_fiber_arch)) %>%
       setdiff(c(NA))
     if (length(fiberchoice) != 0) {
-    selectizeInput(
-      inputId = "fibers",
-      label = "Choose fiber(s) of interest",
-      choices = fiberchoice,
-      selected = input$fibers,
-      multiple = TRUE
-    )}
+      selectizeInput(
+        inputId = "fibers",
+        label = "Choose fiber(s) of interest",
+        choices = fiberchoice,
+        selected = input$fibers,
+        multiple = TRUE
+      )
+    }
   })
 
   # output$InferredQualities <- renderUI({
@@ -178,31 +182,33 @@ function(input, output, session) {
     geos <- levels(factor(reactive_data()$textile_geography_arch)) %>%
       setdiff(c(NA))
     if (length(geos) != 0) {
-    selectizeInput(
-      inputId = "geography",
-      label = "Choose geography of interest",
-      choices = geos,
-      selected = input$geography,
-      multiple = TRUE
-    )}
+      selectizeInput(
+        inputId = "geography",
+        label = "Choose geography of interest",
+        choices = geos,
+        selected = input$geography,
+        multiple = TRUE
+      )
+    }
   })
 
   output$Qualities <- renderUI({
-    qual <- levels(factor(joined.data$textile_quality_arch))%>%
+    qual <- levels(factor(joined.data$textile_quality_arch)) %>%
       setdiff(c(NA))
 
     if (length(qual) != 0) {
-    selectizeInput(
-      inputId = "qualities",
-      label = "Choose quality(s) of interest",
-      choices = qual,
-      selected = input$qualities,
-      multiple = TRUE
-    )}
+      selectizeInput(
+        inputId = "qualities",
+        label = "Choose quality(s) of interest",
+        choices = qual,
+        selected = input$qualities,
+        multiple = TRUE
+      )
+    }
   })
 
   output$Year <- renderUI({
-    user_choices <- levels(factor(c(reactive_data()$orig_yr, reactive_data()$dest_yr)))%>%
+    user_choices <- levels(factor(c(reactive_data()$orig_yr, reactive_data()$dest_yr))) %>%
       setdiff(c(NA))
 
     # should always have a year
@@ -214,7 +220,7 @@ function(input, output, session) {
       selected = input$year,
       multiple = TRUE
     )
-      # }
+    # }
 
     # user_choices in input year
   })
@@ -714,7 +720,7 @@ function(input, output, session) {
       createBarChart(bar.data, values)
     } else {
       ggplot() +
-      theme(text = element_text(family = "Lato", size = 15)) +
+        theme(text = element_text(family = "Lato", size = 15)) +
         ggtitle(label = paste("No data for these filters."))
     }
   })
@@ -777,32 +783,32 @@ function(input, output, session) {
 
 
       if (regionChoice == "Destination") {
-          bar.data2 <- joined.data %>%
-            filter(dest_loc_region == name2) %>%
-            select(
-              orig_loc_region_modern,
-              dest_loc_region,
-              textile_quantity,
-              total_value,
-              orig_yr,
-              dest_yr,
-              all_of(modifier),
-              company
-            )
-        } else {
-          bar.data2 <- joined.data %>%
-            filter(orig_loc_region_modern == name2) %>%
-            select(
-              orig_loc_region_modern,
-              dest_loc_region,
-              textile_quantity,
-              total_value,
-              orig_yr,
-              dest_yr,
-              all_of(modifier),
-              company
-            )
-        }
+        bar.data2 <- joined.data %>%
+          filter(dest_loc_region == name2) %>%
+          select(
+            orig_loc_region_modern,
+            dest_loc_region,
+            textile_quantity,
+            total_value,
+            orig_yr,
+            dest_yr,
+            all_of(modifier),
+            company
+          )
+      } else {
+        bar.data2 <- joined.data %>%
+          filter(orig_loc_region_modern == name2) %>%
+          select(
+            orig_loc_region_modern,
+            dest_loc_region,
+            textile_quantity,
+            total_value,
+            orig_yr,
+            dest_yr,
+            all_of(modifier),
+            company
+          )
+      }
 
 
       if (modifier == "textile_color_arch") {
@@ -823,7 +829,7 @@ function(input, output, session) {
       createBarChart(bar.data2, values)
     } else {
       ggplot() +
-      theme(text = element_text(family = "Lato", size = 15)) +
+        theme(text = element_text(family = "Lato", size = 15)) +
         ggtitle(label = paste("No data for these filters."))
     }
   })
@@ -887,8 +893,8 @@ function(input, output, session) {
 
       # joined.data <- isolate(filter_by_inputs(joined.data,isolate(input)))
 
-      
-      
+
+
       if (regionChoice == "Destination") {
         bar.data <- joined.data %>%
           filter(dest_loc_region == name) %>%
@@ -916,16 +922,16 @@ function(input, output, session) {
             company
           )
       }
-      
+
       if (modifier == "textile_color_arch") {
         bar.data <- bar.data %>%
           mutate(textile_color_arch = ifelse(textile_color_arch == "No color indicated", NA, textile_color_arch))
       }
-      
+
       bar.data <- bar.data %>%
         na.omit()
-      
-      
+
+
       if (dataSet != "Both") {
         bar.data <- bar.data %>%
           filter(company == dataSet)
@@ -964,21 +970,21 @@ function(input, output, session) {
               company
             )
         }
-        
+
         if (modifier == "textile_color_arch") {
           bar.data2 <- bar.data2 %>%
             mutate(textile_color_arch = ifelse(textile_color_arch == "No color indicated", NA, textile_color_arch))
         }
-        
+
         bar.data2 <- bar.data2 %>%
           na.omit()
-        
-        
+
+
         if (dataSet != "Both") {
           bar.data2 <- bar.data2 %>%
             filter(company == dataSet)
         }
-        
+
         if (regionChoice == "Origin") {
           bind.data <<- bar.data %>%
             bind_rows(bar.data2) %>%
@@ -1002,7 +1008,6 @@ function(input, output, session) {
         # ggplotly
         createBarChartCompare(bar.data, values)
       }
-      
     } else {
       ggplot() +
         theme(text = element_text(family = "Lato", size = 15)) +

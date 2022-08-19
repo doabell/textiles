@@ -99,9 +99,9 @@ clean_deb_values <- function(data, col) {
 
 # create deb dec col using debkeepr
 new_total_value_col <- function(data,
-                            l = "value_guldens",
-                            s = "value_stuivers",
-                            d = "value_penningen") {
+                                l = "value_guldens",
+                                s = "value_stuivers",
+                                d = "value_penningen") {
   return(data %>% mutate(total_value = as.numeric(deb_as_decimal(new_deb_lsd_col(data, l, s, d)))))
 }
 
@@ -630,7 +630,7 @@ createBarChart <- function(data, input_vec) { # dataType,year,modVec,regionChoic
   if (length(regionName) == 0 || (is.null(regionName) || is.na(regionName))) {
     return(
       ggplot() +
-      theme(text = element_text(family = "Lato", size = 15)) +
+        theme(text = element_text(family = "Lato", size = 15)) +
         ggtitle(label = "Select a region with data for these textiles in order to display a bar chart here.")
     )
   }
@@ -685,7 +685,7 @@ createBarChart <- function(data, input_vec) { # dataType,year,modVec,regionChoic
     return(bar_plot)
   } else {
     ggplot() +
-    theme(text = element_text(family = "Lato", size = 15)) +
+      theme(text = element_text(family = "Lato", size = 15)) +
       ggtitle(label = paste(regionName, "has no data for", modifierObj, "with these filters."))
   }
 }
@@ -743,8 +743,8 @@ createBarChartCompare <- function(data, input_vec, compare) { # dataType,year,mo
 
 
 
-   
-     plotLabel <- paste("Textiles of", regionName, "and", compare, "with these filters.")
+
+  plotLabel <- paste("Textiles of", regionName, "and", compare, "with these filters.")
 
   if (nrow(data) != 0) {
     bar_plot <- data %>%
@@ -942,8 +942,8 @@ create_leaflet_map <- function(mapdata, valuedata, dataType, lat_long = c(lat, l
     return_popupByDataType(mapdata@data, "Value"), "<br/>",
     return_popupByDataType(mapdata@data, "Quantity")
   ) %>% lapply(htmltools::HTML)
-  
-  
+
+
   country.colors <- get_binByDataType(valuedata, dataType)
   # Mapping the data
   mapdata %>%
@@ -959,7 +959,8 @@ create_leaflet_map <- function(mapdata, valuedata, dataType, lat_long = c(lat, l
       labelOptions = labelOptions(
         style = list("font-weight" = "normal", padding = "3px 8px"),
         textsize = "15px",
-        direction = "auto"),
+        direction = "auto"
+      ),
       # popup = ~ return_popupByDataType(mapdata@data, dataType),
       layerId = ~region
     ) %>%
@@ -1151,4 +1152,3 @@ get_regionChoice <- function(region) {
 #   )
 #   )
 #
-

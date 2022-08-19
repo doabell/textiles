@@ -7,7 +7,6 @@ fluidPage(
       * {font-family: 'Lato'} !important;
     ")
   )),
-  
   sidebarPanel( # All inputs will go in this sidebarPanel
     pickerInput(
       inputId = "dataSet",
