@@ -118,14 +118,19 @@ fluidPage(
             title = "Region 1",
             leafletOutput(outputId = "regionMap"),
             plotOutput(outputId = "pieChart"),
+            plotOutput(outputId = "barChart"),
           ),
           tabPanel(
             title = "Region 2",
             leafletOutput(outputId = "regionMap2"),
             plotOutput(outputId = "pieChart2"),
+            plotOutput(outputId = "barChart2"),
+          ),
+          tabPanel(
+            title = "Compare Regions",
+            plotOutput(outputId = "barChartCompare"),
           )
         ),
-        plotOutput(outputId = "barChart")
       ),
       tabPanel(
         title = "Data Table",

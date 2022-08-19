@@ -597,6 +597,224 @@ function(input, output, session) {
   # except when it is graphing the outputs, it is doing so with a bar chart instead of a pie chart
   output$barChart <- renderPlot({
     name <<- input$regionMap_shape_click$id
+
+    values <- c()
+
+
+    joined.data <- reactive_data()
+
+
+    if (!is.null(name) && length(name) != 0) {
+      modifier <- input$barChart
+      modifierObj <- names(modVec)[modVec == modifier]
+      dataSet <- input$dataSet
+      dataType <- input$dataType
+      regionChoice <- input$regionChoice
+      textileName <- input$textileName
+      colors <- input$colors
+      patterns <- input$patterns
+      process <- input$process
+      fibers <- input$fibers
+      geography <- input$geography
+      qualities <- input$qualities
+      # inferredQualities <- input$inferredQualities
+      # orig_yr <- input$orig_yr
+      year <- input$year
+      # dest_yr <- input$dest_yr
+
+
+
+      values <- c(
+        "name" = name,
+        "modifier" = modifier,
+        "modifierObj" = modifierObj,
+        "dataSet" = dataSet,
+        "dataType" = dataType,
+        "regionChoice" = regionChoice,
+        "textileName" = textileName,
+        "colors" = colors,
+        "patterns" = patterns,
+        "process" = process,
+        "fibers" = fibers,
+        "geography" = geography,
+        "qualities" = qualities,
+        # 'inferredQualities' = inferredQualities,
+        #' orig_yr' = orig_yr,
+        "year" = year
+      )
+
+
+
+      # joined.data <- joined.data.original
+
+      # joined.data <- isolate(filter_by_inputs(joined.data,isolate(input)))
+
+
+      if (regionChoice == "Destination") {
+        bar.data <- joined.data %>%
+          filter(dest_loc_region == name) %>%
+          select(
+            dest_loc_region,
+            orig_loc_region_modern,
+            textile_quantity,
+            total_value,
+            orig_yr,
+            dest_yr,
+            all_of(modifier),
+            company
+          )
+      } else {
+        bar.data <- joined.data %>%
+          filter(orig_loc_region_modern == name) %>%
+          select(
+            dest_loc_region,
+            orig_loc_region_modern,
+            textile_quantity,
+            total_value,
+            orig_yr,
+            dest_yr,
+            all_of(modifier),
+            company
+          )
+      }
+
+
+      if (modifier == "textile_color_arch") {
+        bar.data <- bar.data %>%
+          mutate(textile_color_arch = ifelse(textile_color_arch == "No color indicated", NA, textile_color_arch))
+      }
+
+      bar.data <- bar.data %>%
+        na.omit()
+
+
+      if (dataSet != "Both") {
+        bar.data <- bar.data %>%
+          filter(company == dataSet)
+      }
+
+      # ggplotly
+      createBarChart(bar.data, values)
+    } else {
+      ggplot() +
+      theme(text = element_text(family = "Lato", size = 15)) +
+        ggtitle(label = paste("No data for these filters."))
+    }
+  })
+
+
+  # Rendering the 2nd bar chart
+  output$barChart2 <- renderPlot({
+    name2 <<- input$regionMap2_shape_click$id
+
+    values <- c()
+
+
+    joined.data <- reactive_data()
+
+
+    if (!is.null(name2) && length(name2) != 0) {
+      modifier <- input$barChart
+      modifierObj <- names(modVec)[modVec == modifier]
+      dataSet <- input$dataSet
+      dataType <- input$dataType
+      regionChoice <- input$regionChoice
+      textileName <- input$textileName
+      colors <- input$colors
+      patterns <- input$patterns
+      process <- input$process
+      fibers <- input$fibers
+      geography <- input$geography
+      qualities <- input$qualities
+      # inferredQualities <- input$inferredQualities
+      # orig_yr <- input$orig_yr
+      year <- input$year
+      # dest_yr <- input$dest_yr
+
+
+
+      values <- c(
+        "name" = name2,
+        "modifier" = modifier,
+        "modifierObj" = modifierObj,
+        "dataSet" = dataSet,
+        "dataType" = dataType,
+        "regionChoice" = regionChoice,
+        "textileName" = textileName,
+        "colors" = colors,
+        "patterns" = patterns,
+        "process" = process,
+        "fibers" = fibers,
+        "geography" = geography,
+        "qualities" = qualities,
+        # 'inferredQualities' = inferredQualities,
+        #' orig_yr' = orig_yr,
+        "year" = year
+      )
+
+
+
+      # joined.data <- joined.data.original
+
+      # joined.data <- isolate(filter_by_inputs(joined.data,isolate(input)))
+
+
+      if (regionChoice == "Destination") {
+          bar.data2 <- joined.data %>%
+            filter(dest_loc_region == name2) %>%
+            select(
+              orig_loc_region_modern,
+              dest_loc_region,
+              textile_quantity,
+              total_value,
+              orig_yr,
+              dest_yr,
+              all_of(modifier),
+              company
+            )
+        } else {
+          bar.data2 <- joined.data %>%
+            filter(orig_loc_region_modern == name2) %>%
+            select(
+              orig_loc_region_modern,
+              dest_loc_region,
+              textile_quantity,
+              total_value,
+              orig_yr,
+              dest_yr,
+              all_of(modifier),
+              company
+            )
+        }
+
+
+      if (modifier == "textile_color_arch") {
+        bar.data2 <- bar.data2 %>%
+          mutate(textile_color_arch = ifelse(textile_color_arch == "No color indicated", NA, textile_color_arch))
+      }
+
+      bar.data2 <- bar.data2 %>%
+        na.omit()
+
+
+      if (dataSet != "Both") {
+        bar.data2 <- bar.data2 %>%
+          filter(company == dataSet)
+      }
+
+      # ggplotly
+      createBarChart(bar.data2, values)
+    } else {
+      ggplot() +
+      theme(text = element_text(family = "Lato", size = 15)) +
+        ggtitle(label = paste("No data for these filters."))
+    }
+  })
+
+
+  # Bar chart on comparision pane
+  output$barChartCompare <- renderPlot({
+    name <<- input$regionMap_shape_click$id
     name2 <<- input$regionMap2_shape_click$id
 
     values <- c()
@@ -607,7 +825,7 @@ function(input, output, session) {
 
     if (!is.null(name) && length(name) != 0) {
       modifier <- input$barChart
-      modifierObj <- paste("`", names(modVec)[modVec == modifier], "`", sep = "")
+      modifierObj <- names(modVec)[modVec == modifier]
       dataSet <- input$dataSet
       dataType <- input$dataType
       regionChoice <- input$regionChoice
@@ -759,17 +977,17 @@ function(input, output, session) {
               textile_quantity = sum(textile_quantity)
             )
         }
-        createBarChart(bind.data, values, name2)
+        createBarChartCompare(bind.data, values, name2)
       } else {
         # no 2nd country
         # ggplotly
-        createBarChart(bar.data, values)
+        createBarChartCompare(bar.data, values)
       }
       
     } else {
       ggplot() +
         theme(text = element_text(family = "Lato", size = 15)) +
-        ggtitle(label = paste("No data for these filters."))
+        ggtitle(label = paste("Select regions with data for these textiles in order to display a bar chart here"))
     }
   })
 } # function(input, output, session) {

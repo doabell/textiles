@@ -224,11 +224,11 @@ convert_RegionToCountryName <- function(colvector, type = "dest", returnValue = 
         lword <- temp[-1]
         pword <- temp[-2]
         if (str_detect(pword, "[[:upper:]]")) {
-          pword <- paste(pword, " ", sep = "")
+          pword <- paste0(pword, " ")
         } else {
           pword <- ""
         }
-        temp <- paste(pword, lword, sep = "")
+        temp <- paste0(pword, lword)
       }
     }
     if (sum(str_detect(temp, cardinals)) > 0) {
@@ -607,13 +607,9 @@ return_colnameByDataType <- function(dataType) {
 
 
 
+createBarChart <- function(data, input_vec) { # dataType,year,modVec,regionChoice,modifier){
 
-
-
-
-createBarChart <- function(data, input_vec, compare = NULL) { # dataType,year,modVec,regionChoice,modifier){
-
-  countryName <- input_vec["name"]
+  regionName <- input_vec["name"]
   modifier <- input_vec["modifier"]
   modifierObj <- input_vec["modifierObj"]
   dataSet <- input_vec["dataSet"]
@@ -631,10 +627,11 @@ createBarChart <- function(data, input_vec, compare = NULL) { # dataType,year,mo
   # dest_yr <- input_vec['dest_yr']
   year <- input_vec["year"]
 
-  if (length(countryName) == 0 || (is.null(countryName) || is.na(countryName))) {
+  if (length(regionName) == 0 || (is.null(regionName) || is.na(regionName))) {
     return(
       ggplot() +
-        ggtitle(label = "Select a country with data for these textiles in order to display a bar chart here.")
+      theme(text = element_text(family = "Lato", size = 15)) +
+        ggtitle(label = "Select a region with data for these textiles in order to display a bar chart here.")
     )
   }
 
@@ -655,13 +652,7 @@ createBarChart <- function(data, input_vec, compare = NULL) { # dataType,year,mo
 
 
 
- if(length(compare) != 0){
-   
-     plotLabel <- paste("Textiles of", countryName, "and", compare, "with these filters.")
-   # modifierObj <- 
- } else {
-   plotLabel <- paste(modifierObj, "distribution for", countryName, "with these filters.")
- }
+
   if (nrow(data) != 0) {
     bar_plot <- data %>%
       ggplot(
@@ -688,6 +679,93 @@ createBarChart <- function(data, input_vec, compare = NULL) { # dataType,year,mo
       ) +
       theme_bw() +
       theme(text = element_text(family = "Lato", size = 15)) +
+      ggtitle(label = paste(modifierObj, "distribution for", regionName, "with these filters."))
+
+
+    return(bar_plot)
+  } else {
+    ggplot() +
+    theme(text = element_text(family = "Lato", size = 15)) +
+      ggtitle(label = paste(name, " has no data for ", modifierObj, " with these filters."))
+  }
+}
+
+
+
+
+createBarChartCompare <- function(data, input_vec, compare) { # dataType,year,modVec,regionChoice,modifier){
+
+  regionName <- input_vec["name"]
+  modifier <- input_vec["modifier"]
+  modifierObj <- input_vec["modifierObj"]
+  dataSet <- input_vec["dataSet"]
+  dataType <- input_vec["dataType"]
+  regionChoice <- input_vec["regionChoice"]
+  textileName <- input_vec["textileName"]
+  colors <- input_vec["colors"]
+  patterns <- input_vec["patterns"]
+  process <- input_vec["process"]
+  fibers <- input_vec["fibers"]
+  geography <- input_vec["geography"]
+  qualities <- input_vec["qualities"]
+  inferredQualities <- input_vec["inferredQualities"]
+  # orig_yr <- input_vec['orig_yr']
+  # dest_yr <- input_vec['dest_yr']
+  year <- input_vec["year"]
+
+  if (length(regionName) == 0 || (is.null(regionName) || is.na(regionName))) {
+    return(
+      ggplot() +
+        ggtitle(label = "Select regions with data for these textiles in order to display a bar chart here.")
+    )
+  }
+
+
+  x_col <- c()
+  if (regionChoice == "Origin") {
+    x_col <- data$orig_yr
+  } else {
+    x_col <- data$dest_yr
+  }
+
+  y_col <- c()
+  if (dataType == "Quantity") {
+    y_col <- data$textile_quantity
+  } else {
+    y_col <- data$total_value
+  }
+
+
+
+   
+     plotLabel <- paste("Textiles of", regionName, "and", compare, "with these filters.")
+
+  if (nrow(data) != 0) {
+    bar_plot <- data %>%
+      ggplot(
+        # aes_string
+        # return_yrColname(regionChoice)
+        aes(
+          x = factor(x_col), # factor(data[year]), #want to change this from orig year to be determined based on dest or origin
+          y = y_col # data[modifierObj])
+        )
+      ) +
+      geom_bar(
+        stat = "identity",
+        aes_string(fill = modifier)
+      ) +
+      labs(
+        x = paste(regionChoice, "Year"),
+        y = paste0("Textile ", return_stringByDataType(dataType)),
+        fill = NULL
+      ) +
+      scale_fill_viridis(
+        discrete = TRUE,
+        name = regionChoice,
+        option = "magma"
+      ) +
+      theme_bw() +
+      theme(text = element_text(family = "Lato", size = 15)) +
       ggtitle(label = plotLabel)
 
 
@@ -695,7 +773,7 @@ createBarChart <- function(data, input_vec, compare = NULL) { # dataType,year,mo
   } else {
     ggplot() +
       theme(text = element_text(family = "Lato", size = 15)) +
-      ggtitle(label = paste(name, " has no data for these filters and ", modifierObj, ".", sep = ""))
+      ggtitle(label = paste0(name, " and ", compare, " has no data for ", modifierObj, " with these filters."))
   }
 }
 
