@@ -686,7 +686,7 @@ createBarChart <- function(data, input_vec) { # dataType,year,modVec,regionChoic
   } else {
     ggplot() +
     theme(text = element_text(family = "Lato", size = 15)) +
-      ggtitle(label = paste(name, " has no data for ", modifierObj, " with these filters."))
+      ggtitle(label = paste(regionName, "has no data for", modifierObj, "with these filters."))
   }
 }
 
@@ -694,6 +694,12 @@ createBarChart <- function(data, input_vec) { # dataType,year,modVec,regionChoic
 
 
 createBarChartCompare <- function(data, input_vec, compare) { # dataType,year,modVec,regionChoice,modifier){
+
+  # TODO currently returns data under filter (good) but not data without modifier (e.g. fiber type) despite not being filtered by fiber type
+  # This is because output$barChartCompare uses the filtered data (and because it removes NA?)
+  # Ask about copying individual bar charts (easy) or use quantity throughout (another dataset from reactive? maybe do this in the rewrite)
+
+  # TODO extras: make interactive with ggplotly (or just plot_ly); clear all button; 
 
   regionName <- input_vec["name"]
   modifier <- input_vec["modifier"]
@@ -773,7 +779,7 @@ createBarChartCompare <- function(data, input_vec, compare) { # dataType,year,mo
   } else {
     ggplot() +
       theme(text = element_text(family = "Lato", size = 15)) +
-      ggtitle(label = paste0(name, " and ", compare, " has no data for ", modifierObj, " with these filters."))
+      ggtitle(label = paste(name, "and", compare, "has no data for", modifierObj, "with these filters."))
   }
 }
 

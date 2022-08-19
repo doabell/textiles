@@ -824,7 +824,9 @@ function(input, output, session) {
 
 
     if (!is.null(name) && length(name) != 0) {
-      modifier <- input$barChart
+      # Make permanent
+      # Because all rows have "textile_name", although this does not appear
+      modifier <- "textile_name"
       modifierObj <- names(modVec)[modVec == modifier]
       dataSet <- input$dataSet
       dataType <- input$dataType
