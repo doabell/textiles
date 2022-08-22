@@ -487,7 +487,7 @@ function(input, output, session) {
     } else { # This comes up if they have not clicked any countries
       ggplot() +
         theme(text = element_text(family = "Lato", size = 15)) +
-        ggtitle(label = "Select a region with data for these textiles in order to display a pie chart here.")
+        ggtitle(label = "Select Region 1 with data for these textiles in order to display a pie chart here.")
     }
   })
 
@@ -643,7 +643,7 @@ function(input, output, session) {
       ggplot() +
         theme(text = element_text(family = "Lato", size = 15),
               plot.title = element_text(hjust = 0.5)) +
-        ggtitle(label = "Select a region with data for these textiles in order to display a pie chart here.")
+        ggtitle(label = "Select Region 2 with data for these textiles in order to display a pie chart here.")
     }
   })
 
@@ -752,7 +752,7 @@ function(input, output, session) {
     } else {
       ggplot() +
         theme(text = element_text(family = "Lato", size = 15)) +
-        ggtitle(label = paste("No data for these filters."))
+        ggtitle(label = paste("Select Region 1 with data for these textiles in order to display a bar chart here."))
     }
   })
 
@@ -861,7 +861,7 @@ function(input, output, session) {
     } else {
       ggplot() +
         theme(text = element_text(family = "Lato", size = 15)) +
-        ggtitle(label = paste("No data for these filters."))
+        ggtitle(label = paste("Select Region 2 with data for these textiles in order to display a bar chart here."))
     }
   })
 
