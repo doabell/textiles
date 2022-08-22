@@ -70,3 +70,7 @@ modVec <- c(
 
 # For digits, see ?format
 options(scipen=5, digits = 2)
+
+
+# Center titles
+theme_update(plot.title = element_text(hjust = 0.5))

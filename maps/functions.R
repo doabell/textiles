@@ -678,12 +678,14 @@ createBarChart <- function(data, input_vec) { # dataType,year,modVec,regionChoic
         option = "magma"
       ) +
       theme_bw() +
-      theme(text = element_text(family = "Lato", size = 15), legend.position = "bottom") +
       guides(fill = guide_legend(
         title.position = "top",
         ncol = 7
       )) +
-      ggtitle(label = paste(modifierObj, "distribution for", regionName, "with these filters."))
+      ggtitle(label = paste(modifierObj, "distribution for", regionName, "with these filters.")) +
+      theme(text = element_text(family = "Lato", size = 15),
+            legend.position = "bottom",
+            plot.title = element_text(hjust = 0.5))
 
 
     return(bar_plot)

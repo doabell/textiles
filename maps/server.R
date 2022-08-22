@@ -431,15 +431,18 @@ function(input, output, session) {
               option = "magma"
             ) +
             theme_void() +
-            theme(text = element_text(family = "Lato", size = 15), legend.position = "bottom") +
+            ggtitle(label = paste(names(modVec)[modVec == modifier], "distribution for", name, "with these filters.")) +
+            theme(text = element_text(family = "Lato", size = 15),
+                  legend.position = "bottom",
+                  plot.title = element_text(hjust = 0.5)) +
             guides(fill = guide_legend(
               title.position = "top",
               ncol = 7
-            )) +
-            ggtitle(label = paste(names(modVec)[modVec == modifier], "distribution for", name, "with these filters."))
+            ))
         } else { # No rows were found
           ggplot() +
-            theme(text = element_text(family = "Lato", size = 15)) +
+            theme(text = element_text(family = "Lato", size = 15),
+                  plot.title = element_text(hjust = 0.5)) +
             ggtitle(label = paste(name, " has no data for these filters and ", names(modVec)[modVec == modifier], ".", sep = ""))
         }
       } else { # This will do total value the same way, except graphing total_value
@@ -466,15 +469,18 @@ function(input, output, session) {
               option = "magma"
             ) +
             theme_void() +
-            theme(text = element_text(family = "Lato", size = 15), legend.position = "bottom") +
+            ggtitle(label = paste(names(modVec)[modVec == modifier], "monetary distribution for", name, "with these filters.")) +
+            theme(text = element_text(family = "Lato", size = 15),
+                  legend.position = "bottom",
+                  plot.title = element_text(hjust = 0.5)) +
             guides(fill = guide_legend(
               title.position = "top",
               ncol = 7
-            )) +
-            ggtitle(label = paste(names(modVec)[modVec == modifier], "monetary distribution for", name, "with these filters."))
+            ))
         } else {
           ggplot() +
-            theme(text = element_text(family = "Lato", size = 15)) +
+            theme(text = element_text(family = "Lato", size = 15),
+                  plot.title = element_text(hjust = 0.5)) +
             ggtitle(label = paste(name, " has no data for these filters and ", names(modVec)[modVec == modifier], ".", sep = ""))
         }
       }
@@ -580,15 +586,18 @@ function(input, output, session) {
               option = "magma"
             ) +
             theme_void() +
-            theme(text = element_text(family = "Lato", size = 15), legend.position = "bottom") +
+            theme(text = element_text(family = "Lato", size = 15),
+                  legend.position = "bottom",
+                  plot.title = element_text(hjust = 0.5)) +
+            ggtitle(label = paste(names(modVec)[modVec == modifier], "distribution for", name, "with these filters.")) +
             guides(fill = guide_legend(
               title.position = "top",
               ncol = 7
-            )) +
-            ggtitle(label = paste(names(modVec)[modVec == modifier], "distribution for", name, "with these filters."))
+            ))
         } else { # No rows were found
           ggplot() +
-            theme(text = element_text(family = "Lato", size = 15)) +
+            theme(text = element_text(family = "Lato", size = 15),
+                  plot.title = element_text(hjust = 0.5)) +
             ggtitle(label = paste(name, " has no data for these filters and ", names(modVec)[modVec == modifier], ".", sep = ""))
         }
       } else { # This will do total value the same way, except graphing total_value
@@ -615,28 +624,32 @@ function(input, output, session) {
               option = "magma"
             ) +
             theme_void() +
-            theme(text = element_text(family = "Lato", size = 15), legend.position = "bottom") +
+            ggtitle(label = paste(names(modVec)[modVec == modifier], "monetary distribution for", name, "with these filters.")) +
+            theme(text = element_text(family = "Lato", size = 15),
+                  legend.position = "bottom",
+                  plot.title = element_text(hjust = 0.5)) +
             guides(fill = guide_legend(
               title.position = "top",
               ncol = 7
-            )) +
-            ggtitle(label = paste(names(modVec)[modVec == modifier], "monetary distribution for", name, "with these filters."))
+            ))
         } else {
           ggplot() +
-            theme(text = element_text(family = "Lato", size = 15)) +
+            theme(text = element_text(family = "Lato", size = 15),
+                  plot.title = element_text(hjust = 0.5)) +
             ggtitle(label = paste(name, " has no data for these filters and ", names(modVec)[modVec == modifier], ".", sep = ""))
         }
       }
     } else { # This comes up if they have not clicked any countries
       ggplot() +
-        theme(text = element_text(family = "Lato", size = 15)) +
+        theme(text = element_text(family = "Lato", size = 15),
+              plot.title = element_text(hjust = 0.5)) +
         ggtitle(label = "Select a region with data for these textiles in order to display a pie chart here.")
     }
   })
 
   # Rendering the bar chart - this works nearly the exact same way as the pie chart
   # except when it is graphing the outputs, it is doing so with a bar chart instead of a pie chart
-  output$barChart <- renderPlot({
+  output$barComp1 <- output$barChart <- renderPlot({
     name <<- input$regionMap_shape_click$id
 
     values <- c()
@@ -745,7 +758,7 @@ function(input, output, session) {
 
 
   # Rendering the 2nd bar chart
-  output$barChart2 <- renderPlot({
+  output$barComp2 <- output$barChart2 <- renderPlot({
     name2 <<- input$regionMap2_shape_click$id
 
     values <- c()
@@ -1017,7 +1030,8 @@ function(input, output, session) {
       createBarChartCompare(bind.data, values, name2)
     } else {
       ggplot() +
-        theme(text = element_text(family = "Lato", size = 15)) +
+        theme(text = element_text(family = "Lato", size = 15),
+              plot.title = element_text(hjust = 0.5)) +
         ggtitle(label = paste("Select regions with data for these textiles in order to display a bar chart here."))
     }
   })
