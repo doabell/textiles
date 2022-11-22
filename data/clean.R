@@ -152,5 +152,5 @@ week4$orig_yr <- factor(week4$orig_yr)
 # Export to .rds
 # no compression, space is cheaper than time
 write_rds(week4, "week4.rds")
-
+# writexl::write_xlsx(week4, "week4.xlsx")
 write_rds(unitvec, "unitvec.rds")
