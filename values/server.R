@@ -10,7 +10,8 @@ function(input, output, session) {
     input$textileName,
     {
       wicvoc %>%
-        filter(textile_name == input$textileName)
+        filter(textile_name == input$textileName,
+               textile_unit == unitvec[[input$textileName]])
     }
   )
 
