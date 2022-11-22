@@ -47,11 +47,10 @@ fluidPage(
       onLabel = "AND",
       onStatus = "success",
       offLabel = "OR",
-      size = "mini",
       offStatus = "info"
     ),
-    tags$p("Choose ", tags$b("OR"), " to see results that match ", tags$i("any"), " of the selected modifiers"),
-    tags$p("Choose ", tags$b("AND"), " to see results that match ", tags$i("all"), " of the selected modifiers"),
+    # tags$p("Choose ", tags$b("OR"), " to see results that match ", tags$i("any"), " of the selected modifiers"),
+    # tags$p("Choose ", tags$b("AND"), " to see results that match ", tags$i("all"), " of the selected modifiers"),
     uiOutput("mod2Warn"),
 
     # X-axis
