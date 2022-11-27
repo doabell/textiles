@@ -25,6 +25,7 @@ function(input, output, session) {
       current_textile() %>%
         select(all_of(modvec)) %>%
         sapply(unique) %>%
+        map(sort) %>%
         reduce(union) %>%
         setdiff(c(NA))
     }
