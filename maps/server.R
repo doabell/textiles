@@ -80,7 +80,7 @@ function(input, output, session) {
       "Select on map"
     )
     tagList(
-      tags$p(tags$b("Region 1: "), c1)
+      tags$p(tags$b("Region: "), c1)
     )
   })
 

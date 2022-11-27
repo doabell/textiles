@@ -24,7 +24,7 @@ fluidPage(
     actionButton("refresh", label = "Reset All", icon = icon("redo")),
     radioGroupButtons(
       inputId = "regionChoice",
-      label = "Select region as...",
+      label = "Select this region as...",
       # choices = c("Origin", "Destination"),
       choices = c(`<i class='fa fa-plane-departure'></i> Origin` = "Origin", `<i class='fa fa-plane-arrival'></i> Destination` = "Destination"),
       selected = "Origin",
