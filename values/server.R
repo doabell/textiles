@@ -5,8 +5,20 @@ function(input, output, session) {
 
   # When user selects a textile
   # Mutate data on current textile
+  # Removes NAs for the selected y axis
   # Call with current_textile()
   current_textile <- eventReactive(
+    c(input$textileName, input$yAxisChoice),
+    {
+      wicvoc %>%
+        filter(textile_name == input$textileName,
+               textile_unit == unitvec[[input$textileName]]) %>%
+        drop_na(input$yAxisChoice)
+    }
+  )
+  
+  # Keep NAs for user download
+  current_textile_download <- eventReactive(
     input$textileName,
     {
       wicvoc %>%
@@ -177,13 +189,9 @@ function(input, output, session) {
     # Merge two data frames
     # If both null: copy
     if (is.null(input$textile1mods) & is.null(input$textile2mods)) {
-      plot_data <- current_textile() %>%
-        # Plot what we have data on
-        filter(!is.na(input$yAxisChoice))
+      plot_data <- current_textile()
     } else {
-      plot_data <- bind_rows(mod1data, mod2data) %>%
-        # Plot what we have data on
-        filter(!is.na(input$yAxisChoice))
+      plot_data <- bind_rows(mod1data, mod2data)
     }
 
 
@@ -254,7 +262,7 @@ function(input, output, session) {
         paste0("_textile_data.csv")
     },
     content = function(file) {
-      current_textile() %>%
+      current_textile_download() %>%
         write_csv(file)
     },
     contentType = "text/csv"
