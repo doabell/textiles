@@ -99,7 +99,7 @@ function(input, output, session) {
     }
 
     color_choices <- unique(as.vector(list)) %>%
-      setdiff(c(NA))
+      na.omit()
 
 
     if (length(color_choices) != 0) {
@@ -119,7 +119,7 @@ function(input, output, session) {
   output$Pattern <- renderUI({
     patterns <-
       unique(as.vector(reactive_data()$textile_pattern_arch)) %>%
-      setdiff(c(NA))
+      na.omit()
 
     if (length(patterns) != 0) {
       selectizeInput(
@@ -135,7 +135,7 @@ function(input, output, session) {
 
   output$Process <- renderUI({
     processes <- levels(factor(reactive_data()$textile_process_arch)) %>%
-      setdiff(c(NA))
+      na.omit()
     if (length(processes) != 0) {
       selectizeInput(
         inputId = "process",
@@ -150,7 +150,7 @@ function(input, output, session) {
 
   output$Fibers <- renderUI({
     fiberchoice <- levels(factor(reactive_data()$textile_fiber_arch)) %>%
-      setdiff(c(NA))
+      na.omit()
     if (length(fiberchoice) != 0) {
       selectizeInput(
         inputId = "fibers",
@@ -176,7 +176,8 @@ function(input, output, session) {
 
   output$Geography <- renderUI({
     geos <- levels(factor(reactive_data()$textile_geography_arch)) %>%
-      setdiff(c(NA))
+      na.omit()
+    
     if (length(geos) != 0) {
       selectizeInput(
         inputId = "geography",
@@ -190,7 +191,7 @@ function(input, output, session) {
 
   output$Qualities <- renderUI({
     qual <- levels(factor(joined.data$textile_quality_arch)) %>%
-      setdiff(c(NA))
+      na.omit()
 
     if (length(qual) != 0) {
       selectizeInput(
@@ -204,8 +205,11 @@ function(input, output, session) {
   })
 
   output$Year <- renderUI({
-    user_choices <- levels(factor(c(reactive_data()$orig_yr, reactive_data()$dest_yr))) %>%
-      setdiff(c(NA))
+    user_choices <- unique(joined.data$orig_yr) %>%
+      union(unique(joined.data$dest_yr)) %>%
+      sort() %>%
+      na.omit() %>%
+      setdiff("NA") # Somehow has the string "NA" in it
 
     # should always have a year
     # if (length(user_choices) != 0) {
