@@ -84,7 +84,7 @@ function(input, output, session) {
     selectizeInput(
       inputId = "textileName",
       label = "Choose textile(s) of interest",
-      choices = levels(factor(reactive_data()$textile_name)),
+      choices = levels(factor(joined.data$textile_name)),
       selected = input$textileName,
       multiple = TRUE
     )
@@ -92,7 +92,7 @@ function(input, output, session) {
 
 
   output$Colors <- renderUI({
-    pre_unique <- str_split(unique(reactive_data()$textile_color_arch), ", ")
+    pre_unique <- str_split(unique(joined.data$textile_color_arch), ", ")
 
     list <- c()
     for (i in 1:length(pre_unique)) {
@@ -119,7 +119,7 @@ function(input, output, session) {
 
   output$Pattern <- renderUI({
     patterns <-
-      unique(as.vector(reactive_data()$textile_pattern_arch)) %>%
+      unique(as.vector(joined.data$textile_pattern_arch)) %>%
       na.omit()
 
     if (length(patterns) != 0) {
@@ -135,7 +135,7 @@ function(input, output, session) {
 
 
   output$Process <- renderUI({
-    processes <- levels(factor(reactive_data()$textile_process_arch)) %>%
+    processes <- levels(factor(joined.data$textile_process_arch)) %>%
       na.omit()
     if (length(processes) != 0) {
       selectizeInput(
@@ -150,7 +150,7 @@ function(input, output, session) {
 
 
   output$Fibers <- renderUI({
-    fiberchoice <- levels(factor(reactive_data()$textile_fiber_arch)) %>%
+    fiberchoice <- levels(factor(joined.data$textile_fiber_arch)) %>%
       na.omit()
     if (length(fiberchoice) != 0) {
       selectizeInput(
@@ -176,7 +176,7 @@ function(input, output, session) {
   # })
 
   output$Geography <- renderUI({
-    geos <- levels(factor(reactive_data()$textile_geography_arch)) %>%
+    geos <- levels(factor(joined.data$textile_geography_arch)) %>%
       na.omit()
     
     if (length(geos) != 0) {
