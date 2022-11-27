@@ -326,8 +326,8 @@ function(input, output, session) {
           orig_loc_region_modern
       )
 
-    # Get country selected and filter, if they clicked on a country
-    if (length(name) != 0) {
+    # Get country selected and filter, if user clicked on a country
+    if (!is.null(name) && length(name) != 0) {
 
       choice <- get_regionChoice(regionChoice) # get dest or orig
 
@@ -344,7 +344,7 @@ function(input, output, session) {
     } else {
       # User chose modifier(s) but not a country
       # Give name for plot
-      name <- "Worldwide"
+      name <- "all regions"
     }
 
 
