@@ -24,7 +24,7 @@ fluidPage(
     actionButton("refresh", label = "Reset All", icon = icon("redo")),
     radioGroupButtons(
       inputId = "regionChoice",
-      label = "Select these regions as...",
+      label = "Select region as...",
       # choices = c("Origin", "Destination"),
       choices = c(`<i class='fa fa-plane-departure'></i> Origin` = "Origin", `<i class='fa fa-plane-arrival'></i> Destination` = "Destination"),
       selected = "Origin",
@@ -113,32 +113,11 @@ fluidPage(
     tabsetPanel( # All of the outputs go here (map/graphs, data tables)
       tabPanel(
         title = "Maps",
-        tabsetPanel(
-          tabPanel(
-            title = "Region 1",
-            leafletOutput(outputId = "regionMap"),
-            plotOutput(outputId = "pieChart", height = "600px"),
-            tags$div(style="margin-bottom:30px;", tags$br()),
-            tags$hr(),
-            plotOutput(outputId = "barChart", height = "600px"),
-          ),
-          tabPanel(
-            title = "Region 2",
-            leafletOutput(outputId = "regionMap2"),
-            plotOutput(outputId = "pieChart2", height = "600px"),
-            tags$div(style="margin-bottom:30px;", tags$br()),
-            tags$hr(),
-            plotOutput(outputId = "barChart2", height = "600px"),
-          ),
-          tabPanel(
-            title = "Compare Regions",
-            # plotOutput(outputId = "barChartCompare", height = "600px"),
-            plotOutput(outputId = "barComp1", height = "600px"),
-            tags$div(style="margin-bottom:30px;", tags$br()),
-            tags$hr(),
-            plotOutput(outputId = "barComp2", height = "600px"),
-          )
-        ),
+        leafletOutput(outputId = "regionMap"),
+        plotOutput(outputId = "pieChart", height = "600px"),
+        tags$div(style="margin-bottom:30px;", tags$br()),
+        tags$hr(),
+        plotOutput(outputId = "barChart", height = "600px"),
       ),
       tabPanel(
         title = "Data Table",
