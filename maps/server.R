@@ -344,7 +344,7 @@ function(input, output, session) {
     } else {
       # User chose modifier(s) but not a country
       # Give name for plot
-      name <- "all regions"
+      name <- "Worldwide"
     }
 
 
@@ -503,7 +503,7 @@ function(input, output, session) {
     } else {
       # User chose modifier(s) but not a country
       # Give name for plot
-      name <- "all regions"
+      name <- "Worldwide"
     }
 
     # Populate named vector for createBarChart
