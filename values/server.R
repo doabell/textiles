@@ -26,8 +26,8 @@ function(input, output, session) {
         select(all_of(modvec)) %>%
         sapply(unique) %>%
         map(sort) %>%
-        reduce(union) %>%
-        setdiff(c(NA))
+        map(as.list) %>%
+        setNames(modnames)
     }
   )
 

@@ -13,7 +13,7 @@ library(readr)
 wicvoc <- readRDS("week4.rds")
 unitvec <- readRDS("unitvec.rds")
 
-# Modifier column names
+# Modifier columns
 modvec <- c(
   "textile_color_arch",
   "textile_color_inf",
@@ -23,4 +23,16 @@ modvec <- c(
   "textile_geography_arch",
   "textile_quality_arch",
   "textile_other_unknown_arch"
+)
+
+# Modifier column names
+modnames <- c(
+  "Color, archival",
+  "Color, inferred",
+  "Pattern, archival",
+  "Process, archival",
+  "Fiber, archival",
+  "Geography, archival",
+  "Quality, archival",
+  "Other or unknown, archival"
 )
