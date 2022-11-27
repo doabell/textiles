@@ -89,7 +89,7 @@ function(input, output, session) {
       inputId = "textileName",
       label = "Choose textile(s) of interest",
       choices = levels(factor(joined.data$textile_name)),
-      selected = input$textileName,
+      # selected = input$textileName,
       multiple = TRUE
     )
   })
@@ -112,7 +112,7 @@ function(input, output, session) {
         inputId = "colors",
         label = "Choose color(s) of interest",
         choices = color_choices,
-        selected = input$colors,
+        # selected = input$colors,
         multiple = TRUE
       )
     }
@@ -131,7 +131,7 @@ function(input, output, session) {
         inputId = "Pattern",
         label = "Choose pattern(s) of interest",
         choices = patterns,
-        selected = input$patterns,
+        # selected = input$patterns,
         multiple = TRUE
       )
     }
@@ -146,7 +146,7 @@ function(input, output, session) {
         inputId = "process",
         label = "Choose process(es) of interest",
         choices = processes,
-        selected = input$process,
+        # selected = input$process,
         multiple = TRUE
       )
     }
@@ -161,7 +161,7 @@ function(input, output, session) {
         inputId = "fibers",
         label = "Choose fiber(s) of interest",
         choices = fiberchoice,
-        selected = input$fibers,
+        # selected = input$fibers,
         multiple = TRUE
       )
     }
@@ -188,7 +188,7 @@ function(input, output, session) {
         inputId = "geography",
         label = "Choose geography of interest",
         choices = geos,
-        selected = input$geography,
+        # selected = input$geography,
         multiple = TRUE
       )
     }
@@ -203,7 +203,7 @@ function(input, output, session) {
         inputId = "qualities",
         label = "Choose quality(s) of interest",
         choices = qual,
-        selected = input$qualities,
+        # selected = input$qualities,
         multiple = TRUE
       )
     }
@@ -222,7 +222,7 @@ function(input, output, session) {
       inputId = "year",
       label = "Year:",
       choices = user_choices,
-      selected = input$year,
+      # selected = input$year,
       multiple = TRUE
     )
     # }
