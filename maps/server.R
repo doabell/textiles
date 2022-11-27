@@ -452,109 +452,103 @@ function(input, output, session) {
   # except when it is graphing the outputs, it is doing so with a bar chart instead of a pie chart
   output$barChart <- renderPlot({
     name <<- input$regionMap_shape_click$id
+    modifier <- input$barChart
+    modifierObj <- names(modVec)[modVec == modifier]
+    dataSet <- input$dataSet
+    dataType <- input$dataType
+    regionChoice <- input$regionChoice
+    textileName <- input$textileName
+    colors <- input$colors
+    patterns <- input$patterns
+    process <- input$process
+    fibers <- input$fibers
+    geography <- input$geography
+    qualities <- input$qualities
+    # orig_yr <- input$orig_yr
+    year <- input$year
+    # dest_yr <- input$dest_yr
 
     values <- c()
 
 
-    joined.data <- reactive_data()
-
-
-    if (!is.null(name) && length(name) != 0) {
-      modifier <- input$barChart
-      modifierObj <- names(modVec)[modVec == modifier]
-      dataSet <- input$dataSet
-      dataType <- input$dataType
-      regionChoice <- input$regionChoice
-      textileName <- input$textileName
-      colors <- input$colors
-      patterns <- input$patterns
-      process <- input$process
-      fibers <- input$fibers
-      geography <- input$geography
-      qualities <- input$qualities
-      # inferredQualities <- input$inferredQualities
-      # orig_yr <- input$orig_yr
-      year <- input$year
-      # dest_yr <- input$dest_yr
-
-
-
-      values <- c(
-        "name" = name,
-        "modifier" = modifier,
-        "modifierObj" = modifierObj,
-        "dataSet" = dataSet,
-        "dataType" = dataType,
-        "regionChoice" = regionChoice,
-        "textileName" = textileName,
-        "colors" = colors,
-        "patterns" = patterns,
-        "process" = process,
-        "fibers" = fibers,
-        "geography" = geography,
-        "qualities" = qualities,
-        # 'inferredQualities' = inferredQualities,
-        #' orig_yr' = orig_yr,
-        "year" = year
+    bar.data <- reactive_data() %>%
+      select(
+        dest_loc_region,
+        orig_loc_region_modern,
+        textile_quantity,
+        total_value,
+        orig_yr,
+        dest_yr,
+        all_of(modifier),
+        company
       )
 
-
-
-      # joined.data <- joined.data.original
-
-      # joined.data <- isolate(filter_by_inputs(joined.data,isolate(input)))
-
-
+    # User clicked on a country
+    # Filter for that country
+    if (!is.null(name) && length(name) != 0) {
       if (regionChoice == "Destination") {
-        bar.data <- joined.data %>%
-          filter(dest_loc_region == name) %>%
-          select(
-            dest_loc_region,
-            orig_loc_region_modern,
-            textile_quantity,
-            total_value,
-            orig_yr,
-            dest_yr,
-            all_of(modifier),
-            company
-          )
+        bar.data <- bar.data %>%
+          filter(dest_loc_region == name) 
       } else {
-        bar.data <- joined.data %>%
-          filter(orig_loc_region_modern == name) %>%
-          select(
-            dest_loc_region,
-            orig_loc_region_modern,
-            textile_quantity,
-            total_value,
-            orig_yr,
-            dest_yr,
-            all_of(modifier),
-            company
-          )
-      }
-
-
-      if (modifier == "textile_color_arch") {
         bar.data <- bar.data %>%
-          mutate(textile_color_arch = ifelse(textile_color_arch == "No color indicated", NA, textile_color_arch))
+          filter(orig_loc_region_modern == name)
       }
-
-      bar.data <- bar.data %>%
-        na.omit()
-
-
-      if (dataSet != "Both") {
-        bar.data <- bar.data %>%
-          filter(company == dataSet)
-      }
-
-      # ggplotly
-      createBarChart(bar.data, values)
+    } else if (user_input_len() == 0) {
+      # User did nothing
+      return(
+        ggplot() +
+          theme(text = element_text(family = "Lato", size = 15)) +
+          ggtitle(label = paste("Select a region, textile or modifier to display a bar chart here."))
+      )
     } else {
-      ggplot() +
-        theme(text = element_text(family = "Lato", size = 15)) +
-        ggtitle(label = paste("Select a region with data for these textiles in order to display a bar chart here."))
+      # User chose modifier(s) but not a country
+      # Give name for plot
+      name <- "all regions"
     }
+
+    # Populate named vector for createBarChart
+    values <- c(
+      "name" = name,
+      "modifier" = modifier,
+      "modifierObj" = modifierObj,
+      "dataSet" = dataSet,
+      "dataType" = dataType,
+      "regionChoice" = regionChoice,
+      "textileName" = textileName,
+      "colors" = colors,
+      "patterns" = patterns,
+      "process" = process,
+      "fibers" = fibers,
+      "geography" = geography,
+      "qualities" = qualities,
+      # 'inferredQualities' = inferredQualities,
+      #' orig_yr' = orig_yr,
+      "year" = year
+    )
+
+    # Remove no color indicated
+    if (modifier == "textile_color_arch") {
+      bar.data <- bar.data %>%
+        mutate(textile_color_arch = ifelse(textile_color_arch == "No color indicated", NA, textile_color_arch))
+    }
+
+    if (dataSet != "Both") {
+      bar.data <- bar.data %>%
+        filter(company == dataSet)
+    }
+
+    bar.data <- bar.data %>%
+      na.omit()
+
+    # bar.data <- bar.data %>%
+    #   group_by(across(all_of(modifier))) %>%
+    #   summarise(
+    #     textile_quantity = sum(textile_quantity),
+    #     total_value = sum(total_value)
+    #   )
+
+    # ggplotly
+    createBarChart(bar.data, values)
   })
 
 } # function(input, output, session) {
