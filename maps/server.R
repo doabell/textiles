@@ -54,7 +54,8 @@ function(input, output, session) {
       data <- private_filter_by(data, input$dataSet, data$company)
     }
     data <- private_filter_by(data, input$textileName, data$textile_name)
-    data <- filter_colors(data, input$colors)
+    # data <- filter_colors(data, input$colors)
+    data <- private_filter_by(data, input$colors, data$textile_color_arch)
     data <- private_filter_by(data, input$patterns, data$textile_pattern_arch)
     data <- private_filter_by(data, input$process, data$textile_process_arch)
     data <- private_filter_by(data, input$fibers, data$textile_fiber_arch)
