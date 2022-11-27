@@ -19,7 +19,11 @@ function(input, output, session) {
     session$reload()
   })
 
-
+  # If the user entered a textile, or any modifiers
+  user_input_len <- reactive({
+    c(input$textileName, input$colors, input$patterns, input$process, input$fibers, input$geography, input$qualities, input$year) %>%
+    length()
+  })
 
   reactive_data <- reactive({
 
@@ -293,167 +297,153 @@ function(input, output, session) {
   })
 
   # want to integrate ggploty to have interactive charts
+  # need to figure out how to render fonts properly in plotly
 
 
   # Used to render the plot for pie chart
   output$pieChart <- renderPlot({
+    # Read in all of the inputs, but isolated
+    modifier <- input$pieChart
+    dataSet <- input$dataSet
+    regionChoice <- input$regionChoice
+    textileName <- input$textileName
+    colors <- input$colors
+    patterns <- input$patterns
+    process <- input$process
+    fibers <- input$fibers
+    geography <- input$geography
+    qualities <- input$qualities
     name <- input$regionMap_shape_click$id
 
-    # only want to do this if they clicked on a country
+    # Get a copy of the data
+    pie.data <- reactive_data() %>%
+      select(
+          textile_quantity,
+          total_value,
+          all_of(modifier),
+          company,
+          dest_loc_region,
+          orig_loc_region_modern
+      )
+
+    # Get country selected and filter, if they clicked on a country
     if (length(name) != 0) {
-      # Read in all of the inputs, but isolated
-      modifier <- input$pieChart
-      dataSet <- input$dataSet
-      regionChoice <- input$regionChoice
-      textileName <- input$textileName
-      colors <- input$colors
-      patterns <- input$patterns
-      process <- input$process
-      fibers <- input$fibers
-      geography <- input$geography
-      qualities <- input$qualities
-      # inferredQualities <- input$inferredQualities
-
-      # Again, reusing the original data
-      # joined.data <- joined.data.original
-
-      # Filter all the inputs
-      # joined.data <- isolate(filter_by_inputs(joined.data,isolate(input)))
-
-
-      joined.data <- reactive_data()
 
       choice <- get_regionChoice(regionChoice) # get dest or orig
 
       # We care specifically about the destination here
-      pie.data <- joined.data %>%
-        filter(joined.data[choice] == name) %>%
-        select(
-          textile_quantity,
-          total_value,
-          all_of(modifier),
-          company
-        )
-
-
-      #   if(regionChoice == "Destination"){ #Only dest_loc_region
-      #   pie.data <- joined.data %>%
-      #     filter(dest_loc_region == name) %>%
-      #     select(textile_quantity,
-      #            total_value,
-      #            all_of(modifier),
-      #            company)
-      # }
-      # else { #Only orig_loc_region_modern
-      #   pie.data <- joined.data %>%
-      #     filter(orig_loc_region_modern == name) %>%
-      #     select(textile_quantity,
-      #            total_value,
-      #            all_of(modifier),
-      #            company)
-      # }
-
-      if (dataSet != "Both") { # Controlling for company selection
-        pie.data <- pie.data %>%
-          filter(company == dataSet)
-      }
-      
-      # remove na of the selected columns to avoid errors
-      if (modifier == "textile_color_arch") {
-        pie.data <- pie.data %>%
-          mutate(textile_color_arch = ifelse(textile_color_arch == "No color indicated", NA, textile_color_arch))
-      }
       pie.data <- pie.data %>%
-        na.omit()
+        filter(pie.data[choice] == name)
+    } else if (user_input_len() == 0) {
+      # User did nothing
+      return(
+        ggplot() +
+          theme(text = element_text(family = "Lato", size = 15)) +
+          ggtitle(label = paste("Select a region, textile or modifier to display a pie chart here."))
+      )
+    } else {
+      # User chose modifier(s) but not a country
+      # Give name for plot
+      name <- "Worldwide"
+    }
 
-      if (input$dataType == "Quantity") { # If they're interested in quantity
-        if (nrow(pie.data) != 0) { # check to see if there are values left to publish
-          pie.data %>%
-            # Aggregate by name
-            # https://stackoverflow.com/questions/64055988/
-            group_by(textile_name, !!modifier) %>%
-            summarise(textile_quantity = sum(textile_quantity)) %>%
-            ggplot(aes(
-              x = "",
-              y = textile_quantity
-            )) +
-            geom_bar(
-              stat = "identity",
-              width = 1,
-              aes_string(fill = modifier)
-            ) +
-            coord_polar("y", start = 0) + # This line in particular changes the bar chart to a pie chart
-            labs(
-              x = NULL,
-              y = NULL,
-              fill = NULL
-            ) +
-            scale_fill_viridis(
-              discrete = TRUE,
-              name = paste(names(modVec)[modVec == modifier]),
-              option = "magma"
-            ) +
-            theme_void() +
-            ggtitle(label = paste(names(modVec)[modVec == modifier], "distribution for", name, "with these filters.")) +
-            theme(text = element_text(family = "Lato", size = 15),
-                  legend.position = "bottom",
-                  plot.title = element_text(hjust = 0.5)) +
-            guides(fill = guide_legend(
-              title.position = "top",
-              ncol = 7
-            ))
-        } else { # No rows were found
-          ggplot() +
-            theme(text = element_text(family = "Lato", size = 15),
-                  plot.title = element_text(hjust = 0.5)) +
-            ggtitle(label = paste(name, " has no data for these filters and ", names(modVec)[modVec == modifier], ".", sep = ""))
-        }
-      } else { # This will do total value the same way, except graphing total_value
-        if (nrow(pie.data) != 0) {
-          pie.data %>%
-            # Aggregate by name
-            group_by(textile_name, !!modifier) %>%
-            summarise(total_value = sum(total_value)) %>%
-            ggplot(aes(
-              x = "",
-              y = total_value
-            )) +
-            geom_bar(
-              stat = "identity",
-              width = 1,
-              aes_string(fill = modifier)
-            ) +
-            coord_polar("y", start = 0) +
-            labs(
-              x = NULL,
-              y = NULL,
-              fill = NULL
-            ) +
-            scale_fill_viridis(
-              discrete = TRUE,
-              name = paste(names(modVec)[modVec == modifier]),
-              option = "magma"
-            ) +
-            theme_void() +
-            ggtitle(label = paste(names(modVec)[modVec == modifier], "monetary distribution for", name, "with these filters.")) +
-            theme(text = element_text(family = "Lato", size = 15),
-                  legend.position = "bottom",
-                  plot.title = element_text(hjust = 0.5)) +
-            guides(fill = guide_legend(
-              title.position = "top",
-              ncol = 7
-            ))
-        } else {
-          ggplot() +
-            theme(text = element_text(family = "Lato", size = 15),
-                  plot.title = element_text(hjust = 0.5)) +
-            ggtitle(label = paste(name, " has no data for these filters and ", names(modVec)[modVec == modifier], ".", sep = ""))
-        }
+
+    if (dataSet != "Both") { # Controlling for company selection
+      pie.data <- pie.data %>%
+        filter(company == dataSet)
+    }
+    
+    # remove na of the selected columns to avoid errors
+    if (modifier == "textile_color_arch") {
+      pie.data <- pie.data %>%
+        mutate(textile_color_arch = ifelse(textile_color_arch == "No color indicated", NA, textile_color_arch))
+    }
+    pie.data <- pie.data %>%
+      na.omit()
+
+    if (input$dataType == "Quantity") { # If they're interested in quantity
+      if (nrow(pie.data) != 0) { # check to see if there are values left to publish
+        pie.data %>%
+          # Aggregate by name
+          # https://stackoverflow.com/questions/64055988/
+          group_by(across(all_of(modifier))) %>%
+          summarise(textile_quantity = sum(textile_quantity)) %>%
+          ggplot(aes(
+            x = "",
+            y = textile_quantity
+          )) +
+          geom_bar(
+            stat = "identity",
+            width = 1,
+            aes_string(fill = modifier)
+          ) +
+          coord_polar("y", start = 0) + # This line in particular changes the bar chart to a pie chart
+          labs(
+            x = NULL,
+            y = NULL,
+            fill = NULL
+          ) +
+          scale_fill_viridis(
+            discrete = TRUE,
+            name = paste(names(modVec)[modVec == modifier]),
+            option = "magma"
+          ) +
+          theme_void() +
+          ggtitle(label = paste(names(modVec)[modVec == modifier], "distribution for", name, "with these filters.")) +
+          theme(text = element_text(family = "Lato", size = 15),
+                legend.position = "bottom",
+                plot.title = element_text(hjust = 0.5)) +
+          guides(fill = guide_legend(
+            title.position = "top",
+            ncol = 7
+          ))
+      } else { # No rows were found
+        ggplot() +
+          theme(text = element_text(family = "Lato", size = 15),
+                plot.title = element_text(hjust = 0.5)) +
+          ggtitle(label = paste(name, " has no data for these filters and ", names(modVec)[modVec == modifier], ".", sep = ""))
       }
-    } else { # This comes up if they have not clicked any countries
-      ggplot() +
-        theme(text = element_text(family = "Lato", size = 15)) +
-        ggtitle(label = "Select a region with data for these textiles in order to display a pie chart here.")
+    } else { # This will do total value the same way, except graphing total_value
+      if (nrow(pie.data) != 0) {
+        pie.data %>%
+          # Aggregate by name
+          group_by(across(all_of(modifier))) %>%
+          summarise(total_value = sum(total_value)) %>%
+          ggplot(aes(
+            x = "",
+            y = total_value
+          )) +
+          geom_bar(
+            stat = "identity",
+            width = 1,
+            aes_string(fill = modifier)
+          ) +
+          coord_polar("y", start = 0) +
+          labs(
+            x = NULL,
+            y = NULL,
+            fill = NULL
+          ) +
+          scale_fill_viridis(
+            discrete = TRUE,
+            name = paste(names(modVec)[modVec == modifier]),
+            option = "magma"
+          ) +
+          theme_void() +
+          ggtitle(label = paste(names(modVec)[modVec == modifier], "monetary distribution for", name, "with these filters.")) +
+          theme(text = element_text(family = "Lato", size = 15),
+                legend.position = "bottom",
+                plot.title = element_text(hjust = 0.5)) +
+          guides(fill = guide_legend(
+            title.position = "top",
+            ncol = 7
+          ))
+      } else {
+        ggplot() +
+          theme(text = element_text(family = "Lato", size = 15),
+                plot.title = element_text(hjust = 0.5)) +
+          ggtitle(label = paste(name, " has no data for these filters and ", names(modVec)[modVec == modifier], ".", sep = ""))
+      }
     }
   })
 
