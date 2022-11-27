@@ -348,6 +348,11 @@ function(input, output, session) {
       #            company)
       # }
 
+      if (dataSet != "Both") { # Controlling for company selection
+        pie.data <- pie.data %>%
+          filter(company == dataSet)
+      }
+      
       # remove na of the selected columns to avoid errors
       if (modifier == "textile_color_arch") {
         pie.data <- pie.data %>%
@@ -356,15 +361,13 @@ function(input, output, session) {
       pie.data <- pie.data %>%
         na.omit()
 
-
-      if (dataSet != "Both") { # Controlling for company selection
-        pie.data <- pie.data %>%
-          filter(company == dataSet)
-      }
-
       if (input$dataType == "Quantity") { # If they're interested in quantity
         if (nrow(pie.data) != 0) { # check to see if there are values left to publish
           pie.data %>%
+            # Aggregate by name
+            # https://stackoverflow.com/questions/64055988/
+            group_by(textile_name, !!modifier) %>%
+            summarise(textile_quantity = sum(textile_quantity)) %>%
             ggplot(aes(
               x = "",
               y = textile_quantity
@@ -403,6 +406,9 @@ function(input, output, session) {
       } else { # This will do total value the same way, except graphing total_value
         if (nrow(pie.data) != 0) {
           pie.data %>%
+            # Aggregate by name
+            group_by(textile_name, !!modifier) %>%
+            summarise(total_value = sum(total_value)) %>%
             ggplot(aes(
               x = "",
               y = total_value
