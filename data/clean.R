@@ -26,23 +26,6 @@ week4 %<>%
     )
   )
 
-# Muslins
-week4 %<>%
-  mutate(
-    textile_name = if_else(textile_name %in% c(
-      "adathaies",
-      "adathaies",
-      "bethilles",
-      "camcanys",
-      "mallemolens",
-      "sollogesjes",
-      "tanjeebs"
-    ),
-    "muslin",
-    textile_name
-    )
-  )
-
 # convert NAs to 0
 # will convert back to NAs after
 week4 %<>%
