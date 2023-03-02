@@ -7,7 +7,7 @@ library(readxl)
 library(readr)
 
 # read
-week4 <- read_excel("WICVOCDataAll_011923.xlsx",
+week4 <- read_excel("WICVOCDataAll_030223.xlsx",
   guess_max = 20000
 )
 
@@ -125,6 +125,7 @@ week4 %<>%
     dest_loc_region,
     dest_loc_abr,
     starts_with("textile"),
+    supplier,
     total_value,
     price_per_unit
   )
