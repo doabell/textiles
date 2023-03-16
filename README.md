@@ -1,6 +1,9 @@
 # Textiles
-
 A research project on the textiles traded by the Dutch East and West India Companies.
+
+[Maps App](https://dutchtextiletradeapps.shinyapps.io/maps/)
+
+[Values App](https://dutchtextiletradeapps.shinyapps.io/values/)
 
 ## Quick Start
 `maps`, `pictures`, and `values` are three separate Shiny apps.
