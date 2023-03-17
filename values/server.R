@@ -1,5 +1,35 @@
 # Backend
 function(input, output, session) {
+  # https://stackoverflow.com/a/70093686
+  # get textile name from url
+  observeEvent(getQueryString(session)$name,
+    {
+      queryName <- getQueryString(session)$name
+      if (is.null(input$textileName) || !is.null(queryName) && queryName != input$textileName) {
+        # freezeReactiveValue(input, "textileName")
+        updateSelectInput(session,
+          inputId = "textileName",
+          selected = queryName
+        )
+      }
+    },
+    priority = 1
+  )
+
+  # save textile name to url
+  observeEvent(input$textileName,
+    {
+      queryName <- getQueryString(session)$name
+      newQuery <- paste0("?name=", input$textileName)
+      if (is.null(queryName) || queryName != input$textileName) {
+        # freezeReactiveValue(input, "textileName")
+        updateQueryString(newQuery, mode = "push", session)
+      }
+    },
+    priority = 0
+  )
+
+
   # No scientific notation
   options(scipen = 1000000)
 
