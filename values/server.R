@@ -11,19 +11,23 @@ function(input, output, session) {
     c(input$textileName, input$yAxisChoice),
     {
       wicvoc %>%
-        filter(textile_name == input$textileName,
-               textile_unit == unitvec[[input$textileName]]) %>%
+        filter(
+          textile_name == input$textileName,
+          textile_unit == unitvec[[input$textileName]]
+        ) %>%
         drop_na(input$yAxisChoice)
     }
   )
-  
+
   # Keep NAs for user download
   current_textile_download <- eventReactive(
     input$textileName,
     {
       wicvoc %>%
-        filter(textile_name == input$textileName,
-               textile_unit == unitvec[[input$textileName]])
+        filter(
+          textile_name == input$textileName,
+          textile_unit == unitvec[[input$textileName]]
+        )
     }
   )
 
@@ -248,9 +252,22 @@ function(input, output, session) {
       ))
 
     # Make interactive
-    ggplotly(mainggplot) %>%
-      layout(font = list(family = "Lato"))
+    # Fonts don't work in png export
+    # https://github.com/plotly/plotly.js/issues/4885
+    # https://stackoverflow.com/q/42402584
+    mainplotly <- ggplotly(mainggplot) %>%
+      layout(font = list(family = 'Lato, -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'))
+
+    # Style plotly
+    # https://plotly.com/r/configuration-options/#customizing-modebar-download-plot-button
+    plotly::config(mainplotly, toImageButtonOptions = list(
+      format = "png",
+      filename = input$textileName,
+      scale = 4
+    ))
   })
+
+
 
   # Download buttons ####
   output$downloadData <- downloadHandler(
