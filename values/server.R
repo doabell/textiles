@@ -102,11 +102,9 @@ function(input, output, session) {
 
   # Main graph ####
   output$mainGraph <- renderPlotly({
-
     # Modifier 1 ####
     # Contains modifiers
     if (!is.null(input$textile1mods)) {
-
       # TRUE: AND
       if (input$modifier1And) {
         # Grab all rows with modifier
@@ -151,7 +149,6 @@ function(input, output, session) {
     # Modifier 2 ####
     # Contains modifiers
     if (!is.null(input$textile2mods)) {
-
       # TRUE: AND
       if (input$modifier2And) {
         # Grab all rows with modifier
@@ -244,7 +241,7 @@ function(input, output, session) {
     # Table for debugging
     # output$table <- renderTable(plot_data)
 
-    # Finally plot
+    # Finally plot ####
     mainggplot <- plot_data %>%
       ggplot() +
       geom_col(aes_string(
@@ -286,15 +283,24 @@ function(input, output, session) {
     # https://github.com/plotly/plotly.js/issues/4885
     # https://stackoverflow.com/q/42402584
     mainplotly <- ggplotly(mainggplot) %>%
-      layout(font = list(family = 'Lato, -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'))
+      plotly::layout(
+        font = list(family = "Lato", size = 16),
+        hoverlabel = list(
+          font = list(family = "Lato", size = 16)
+        )
+      )
 
     # Style plotly
     # https://plotly.com/r/configuration-options/#customizing-modebar-download-plot-button
-    plotly::config(mainplotly, toImageButtonOptions = list(
-      format = "png",
-      filename = input$textileName,
-      scale = 4
-    ))
+    plotly::config(
+      mainplotly,
+      displaylogo = FALSE,
+      toImageButtonOptions = list(
+        format = "png",
+        filename = input$textileName,
+        scale = 4
+      )
+    )
   })
 
 
