@@ -165,6 +165,7 @@
     const textileCount = $derived(new Set(filtered.map((record) => record.textile)).size);
 
     onMount(() => {
+        textile = new URL(window.location.href).searchParams.get("textile") ?? "";
         if (!mapHost) return;
         const observer = new ResizeObserver(([entry]) => {
             mapWidth = Math.max(320, Math.floor(entry.contentRect.width));

@@ -212,16 +212,18 @@ h4 {
 }
 
 .mobile-nav {
-    position: fixed;
-    z-index: 49;
-    top: 5.5rem;
+    position: absolute;
+    z-index: 1;
+    top: 100%;
     right: 0;
-    bottom: 0;
     left: 0;
     display: grid;
     align-content: start;
+    height: calc(100dvh - 5.5rem);
     padding: 2rem var(--page-pad);
+    overflow-y: auto;
     background: var(--paper);
+    overscroll-behavior: contain;
 }
 
 .mobile-nav > a {
@@ -460,7 +462,7 @@ main {
     }
 
     .mobile-nav {
-        top: 4.8rem;
+        height: calc(100dvh - 4.8rem);
     }
 
     .brand small {

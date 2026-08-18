@@ -8,19 +8,41 @@
         Search,
         X,
     } from "@lucide/svelte";
+    import { onMount } from "svelte";
     import { archiveItems, archiveOptions, type ArchiveItem } from "$lib/data/archive";
     import ResearchAppHeader from "$lib/components/ResearchAppHeader.svelte";
     import { assetPath } from "$lib/utils/asset-path";
 
-    let view = $state<"all" | "sample" | "painting">("all");
+    const PAGE_SIZE = 24;
+
+    let view = $state<"all" | "named" | "unidentified">("all");
     let query = $state("");
+    let textile = $state("");
     let color = $state("");
     let pattern = $state("");
     let process = $state("");
     let fiber = $state("");
+    let currentPage = $state(1);
     let detailItem = $state<ArchiveItem | null>(null);
     let comparison = $state<ArchiveItem[]>([]);
     let comparisonOpen = $state(false);
+    let resultsSection = $state<HTMLElement>();
+
+    const normalize = (input: string) =>
+        input
+            .toLocaleLowerCase("en")
+            .normalize("NFKD")
+            .replace(/[^\p{L}\p{N}]+/gu, "")
+            .trim();
+
+    function matchesAttribute(input: string, selected: string) {
+        if (!selected) return true;
+        const target = normalize(selected);
+        return input
+            .split(/[,;]/)
+            .map(normalize)
+            .some((item) => item === target || item.includes(target));
+    }
 
     const filtered = $derived.by(() =>
         archiveItems.filter((item) => {
@@ -37,32 +59,83 @@
                 item.geography,
                 item.collection,
                 item.date,
+                item.sourceText,
+                item.additionalInfo,
+                item.quality,
             ]
                 .join(" ")
                 .toLocaleLowerCase("en");
 
+            const isNamed = item.textile !== "No known name";
+
             return (
-                (view === "all" || item.type === view) &&
+                (view === "all" || (view === "named" ? isNamed : !isNamed)) &&
                 (!query || terms.includes(query.toLocaleLowerCase("en").trim())) &&
-                (!color || item.primaryColor === color || item.secondaryColor === color) &&
-                (!pattern || item.pattern === pattern) &&
-                (!process || item.process === process) &&
-                (!fiber || item.fiber === fiber)
+                (!textile || normalize(item.textile).includes(normalize(textile))) &&
+                matchesAttribute(item.primaryColor, color) &&
+                matchesAttribute(item.pattern, pattern) &&
+                matchesAttribute(item.process, process) &&
+                matchesAttribute(item.fiber, fiber)
             );
         }),
     );
 
-    const activeFilters = $derived(
-        [query, color, pattern, process, fiber].filter(Boolean).length + (view !== "all" ? 1 : 0),
+    const pageCount = $derived(Math.max(1, Math.ceil(filtered.length / PAGE_SIZE)));
+    const pageItems = $derived(
+        filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE),
     );
+    const firstResult = $derived(filtered.length ? (currentPage - 1) * PAGE_SIZE + 1 : 0);
+    const lastResult = $derived(Math.min(currentPage * PAGE_SIZE, filtered.length));
+    const visiblePages = $derived.by(() => {
+        const first = Math.max(1, Math.min(currentPage - 2, pageCount - 4));
+        const last = Math.min(pageCount, first + 4);
+        return Array.from({ length: last - first + 1 }, (_, index) => first + index);
+    });
+
+    const activeFilters = $derived(
+        [query, textile, color, pattern, process, fiber].filter(Boolean).length +
+            (view !== "all" ? 1 : 0),
+    );
+
+    onMount(() => {
+        const requested = new URL(window.location.href).searchParams.get("textile")?.trim();
+        if (!requested) return;
+
+        const normalizedRequest = normalize(requested);
+        const matchingOption = archiveOptions.textiles.find((option) => {
+            const normalizedOption = normalize(option);
+            return (
+                normalizedOption === normalizedRequest ||
+                normalizedOption.includes(normalizedRequest) ||
+                normalizedRequest.includes(normalizedOption)
+            );
+        });
+
+        if (matchingOption) textile = matchingOption;
+        else query = requested;
+    });
 
     function resetFilters() {
         view = "all";
         query = "";
+        textile = "";
         color = "";
         pattern = "";
         process = "";
         fiber = "";
+        currentPage = 1;
+    }
+
+    function setView(nextView: "all" | "named" | "unidentified") {
+        view = nextView;
+        currentPage = 1;
+    }
+
+    function setPage(page: number) {
+        currentPage = Math.max(1, Math.min(page, pageCount));
+        requestAnimationFrame(() =>
+            resultsSection?.scrollIntoView({ behavior: "smooth", block: "start" }),
+        );
     }
 
     function toggleCompare(item: ArchiveItem) {
@@ -122,22 +195,22 @@
 
         <div class="archive-toolbar">
             <div class="view-switcher" role="group" aria-label="Record type">
-                <button class:active={view === "all"} type="button" onclick={() => (view = "all")}>
+                <button class:active={view === "all"} type="button" onclick={() => setView("all")}>
                     All records
                 </button>
                 <button
-                    class:active={view === "sample"}
+                    class:active={view === "named"}
                     type="button"
-                    onclick={() => (view = "sample")}
+                    onclick={() => setView("named")}
                 >
-                    Material samples
+                    Named textiles
                 </button>
                 <button
-                    class:active={view === "painting"}
+                    class:active={view === "unidentified"}
                     type="button"
-                    onclick={() => (view = "painting")}
+                    onclick={() => setView("unidentified")}
                 >
-                    Pictured textiles
+                    Unidentified textiles
                 </button>
             </div>
 
@@ -148,9 +221,17 @@
                     type="search"
                     placeholder="Search names, makers, collections…"
                     bind:value={query}
+                    oninput={() => (currentPage = 1)}
                 />
                 {#if query}
-                    <button type="button" aria-label="Clear search" onclick={() => (query = "")}>
+                    <button
+                        type="button"
+                        aria-label="Clear search"
+                        onclick={() => {
+                            query = "";
+                            currentPage = 1;
+                        }}
+                    >
                         <X size={15} />
                     </button>
                 {/if}
@@ -158,8 +239,17 @@
 
             <div class="select-filters">
                 <label>
+                    <span>Textile</span>
+                    <select bind:value={textile} onchange={() => (currentPage = 1)}>
+                        <option value="">All names</option>
+                        {#each archiveOptions.textiles as item}
+                            <option value={item}>{item}</option>
+                        {/each}
+                    </select>
+                </label>
+                <label>
                     <span>Color</span>
-                    <select bind:value={color}>
+                    <select bind:value={color} onchange={() => (currentPage = 1)}>
                         <option value="">All colors</option>
                         {#each archiveOptions.colors as item}
                             <option value={item}>{item}</option>
@@ -168,7 +258,7 @@
                 </label>
                 <label>
                     <span>Pattern</span>
-                    <select bind:value={pattern}>
+                    <select bind:value={pattern} onchange={() => (currentPage = 1)}>
                         <option value="">All patterns</option>
                         {#each archiveOptions.patterns as item}
                             <option value={item}>{item}</option>
@@ -177,7 +267,7 @@
                 </label>
                 <label>
                     <span>Process</span>
-                    <select bind:value={process}>
+                    <select bind:value={process} onchange={() => (currentPage = 1)}>
                         <option value="">All processes</option>
                         {#each archiveOptions.processes as item}
                             <option value={item}>{item}</option>
@@ -186,7 +276,7 @@
                 </label>
                 <label>
                     <span>Fiber</span>
-                    <select bind:value={fiber}>
+                    <select bind:value={fiber} onchange={() => (currentPage = 1)}>
                         <option value="">All fibers</option>
                         {#each archiveOptions.fibers as item}
                             <option value={item}>{item}</option>
@@ -198,10 +288,17 @@
     </div>
 </section>
 
-<section class:comparison-active={comparison.length > 0} class="archive-results page-shell">
+<section
+    bind:this={resultsSection}
+    class:comparison-active={comparison.length > 0}
+    class="archive-results page-shell"
+>
     <div class="results-head">
         <p>
             <strong>{filtered.length}</strong> visual {filtered.length === 1 ? "record" : "records"}
+            {#if filtered.length > PAGE_SIZE}
+                <span> · Showing {firstResult}–{lastResult}</span>
+            {/if}
         </p>
         <div>
             {#if comparison.length}<span>{comparison.length}/2 selected</span>{/if}
@@ -210,7 +307,7 @@
 
     {#if filtered.length}
         <div class="archive-grid">
-            {#each filtered as item, index}
+            {#each pageItems as item, index}
                 <article class:chosen={isCompared(item)} class="archive-card">
                     <button
                         class="image-button"
@@ -221,11 +318,12 @@
                         <img
                             src={assetPath(item.image)}
                             alt={item.title}
-                            loading={index > 10 ? "lazy" : "eager"}
+                            loading={index > 5 ? "lazy" : "eager"}
+                            decoding="async"
                         />
-                        <span class={`record-type ${item.type}`}
-                            >{item.type === "sample" ? "Material" : "Pictorial"}</span
-                        >
+                        <span class="record-type sample">
+                            {item.textile === "No known name" ? "Unidentified" : "Material"}
+                        </span>
                         <i><Info size={16} /> View record</i>
                     </button>
                     <div class="card-copy">
@@ -263,6 +361,37 @@
                 </article>
             {/each}
         </div>
+        {#if pageCount > 1}
+            <nav class="pagination" aria-label="Swatch result pages">
+                <button
+                    type="button"
+                    disabled={currentPage === 1}
+                    onclick={() => setPage(currentPage - 1)}
+                >
+                    Previous
+                </button>
+                <div>
+                    {#each visiblePages as page}
+                        <button
+                            class:active={page === currentPage}
+                            type="button"
+                            aria-current={page === currentPage ? "page" : undefined}
+                            aria-label={`Page ${page}`}
+                            onclick={() => setPage(page)}
+                        >
+                            {page}
+                        </button>
+                    {/each}
+                </div>
+                <button
+                    type="button"
+                    disabled={currentPage === pageCount}
+                    onclick={() => setPage(currentPage + 1)}
+                >
+                    Next
+                </button>
+            </nav>
+        {/if}
     {:else}
         <div class="empty-state">
             <Search size={25} strokeWidth={1.3} />
@@ -368,7 +497,7 @@
                         <div class={`compare-letter ${index === 0 ? "a" : "b"}`}>
                             {index === 0 ? "A" : "B"}
                         </div>
-                        <figure><img src={assetPath(item.image)} alt={item.title} /></figure>
+                        <figure><img src={assetPath(item.fullImage)} alt={item.title} /></figure>
                         <div>
                             <h3>{item.title}</h3>
                             {#if item.artist}<p>{item.artist}, {item.date}</p>{/if}
@@ -459,12 +588,10 @@
                 <X size={19} />
             </button>
             <figure>
-                <img src={assetPath(detailItem.image)} alt={detailItem.title} />
+                <img src={assetPath(detailItem.fullImage)} alt={detailItem.title} />
             </figure>
             <div class="modal-copy">
-                <p class="eyebrow">
-                    {detailItem.type === "sample" ? "Material record" : "Pictorial record"}
-                </p>
+                <p class="eyebrow">Material record · {detailItem.id}</p>
                 <h2 id="record-title">{detailItem.title}</h2>
                 {#if detailItem.artist}<p class="artist">
                         {detailItem.artist}, {detailItem.date}
@@ -510,6 +637,24 @@
                         <dt>Inventory</dt>
                         <dd>{detailItem.inventory || "Not recorded"}</dd>
                     </div>
+                    {#if detailItem.sourceText}
+                        <div>
+                            <dt>Text from source</dt>
+                            <dd>{detailItem.sourceText}</dd>
+                        </div>
+                    {/if}
+                    {#if detailItem.quality}
+                        <div>
+                            <dt>Quality</dt>
+                            <dd>{detailItem.quality}</dd>
+                        </div>
+                    {/if}
+                    {#if detailItem.additionalInfo}
+                        <div>
+                            <dt>Additional information</dt>
+                            <dd>{detailItem.additionalInfo}</dd>
+                        </div>
+                    {/if}
                 </dl>
                 <div class="modal-actions">
                     <button
@@ -678,7 +823,7 @@
     .select-filters {
         grid-column: 1 / -1;
         display: grid;
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(5, minmax(0, 1fr));
         gap: 1rem;
     }
 
@@ -760,6 +905,45 @@
         column-gap: 1px;
         background: var(--line-strong);
         border: 1px solid var(--line-strong);
+    }
+
+    .pagination {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        justify-content: center;
+        margin-top: 2rem;
+        padding-top: 2rem;
+        border-top: 1px solid var(--line);
+    }
+
+    .pagination > div {
+        display: flex;
+        gap: 0.35rem;
+    }
+
+    .pagination button {
+        min-width: 2.6rem;
+        min-height: 2.6rem;
+        padding: 0.55rem 0.75rem;
+        color: var(--ink-soft);
+        border: 1px solid var(--line-strong);
+        background: var(--paper);
+        font-size: 0.72rem;
+        font-weight: 700;
+        cursor: pointer;
+    }
+
+    .pagination button:hover:not(:disabled),
+    .pagination button.active {
+        color: var(--paper);
+        border-color: var(--ink);
+        background: var(--ink);
+    }
+
+    .pagination button:disabled {
+        cursor: not-allowed;
+        opacity: 0.4;
     }
 
     .archive-card {
@@ -1459,6 +1643,14 @@
         .results-head > div {
             flex-direction: column;
             align-items: flex-end;
+        }
+
+        .pagination {
+            justify-content: space-between;
+        }
+
+        .pagination > div {
+            display: none;
         }
 
         .compare-dock-inner {

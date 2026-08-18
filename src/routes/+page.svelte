@@ -204,8 +204,17 @@
     </div>
 
     <div class="tool-list">
-        <a href="/map/" class="tool-item indigo">
+        <a href="/explore/" class="tool-item madder">
             <div class="tool-number">01</div>
+            <div>
+                <h3>Trade Data Explorer</h3>
+                <p>Filter, compare, map, inspect, and download trade records.</p>
+            </div>
+            <Database size={30} strokeWidth={1.25} aria-hidden="true" />
+            <span class="tool-arrow"><ArrowUpRight size={20} aria-hidden="true" /></span>
+        </a>
+        <a href="/map/" class="tool-item indigo">
+            <div class="tool-number">02</div>
             <div>
                 <h3>Textile Geographies</h3>
                 <p>
@@ -219,7 +228,7 @@
             <span class="tool-arrow"><ArrowUpRight size={20} aria-hidden="true" /></span>
         </a>
         <a href="/values/" class="tool-item saffron">
-            <div class="tool-number">02</div>
+            <div class="tool-number">03</div>
             <div>
                 <h3>Textiles, Modifiers, and Values</h3>
                 <p>
@@ -232,7 +241,7 @@
             <span class="tool-arrow"><ArrowUpRight size={20} aria-hidden="true" /></span>
         </a>
         <a href="/swatches/" class="tool-item madder">
-            <div class="tool-number">03</div>
+            <div class="tool-number">04</div>
             <div>
                 <h3>Swatch Search</h3>
                 <p>

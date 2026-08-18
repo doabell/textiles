@@ -11,6 +11,7 @@
         X,
     } from "@lucide/svelte";
     import { onMount } from "svelte";
+    import ResearchAppHeader from "$lib/components/ResearchAppHeader.svelte";
     import type { TradeRecord } from "$lib/server/trade";
     import type { PageData } from "./$types";
 
@@ -219,24 +220,14 @@
 </script>
 
 <svelte:head>
-    <title>Data Table — Dutch Textile Trade</title>
+    <title>Trade Data Explorer — Dutch Textile Trade</title>
     <meta
         name="description"
         content="These dynamic apps allow users to explore the project data by geography, date, company, textile name and/or descriptors of the textiles found in archival sources (modifiers), and value of textiles, producing data visualizations."
     />
 </svelte:head>
 
-<div class="explorer-head page-shell">
-    <div>
-        <p class="eyebrow">Data Visualization</p>
-        <h1>Data Table</h1>
-    </div>
-    <p>
-        These dynamic apps allow users to explore the project data by geography, date, company,
-        textile name and/or descriptors of the textiles found in archival sources (modifiers), and
-        value of textiles, producing data visualizations.
-    </p>
-</div>
+<ResearchAppHeader active="trade-explorer" />
 
 <div class="explorer-shell page-shell">
     <aside class:open={filtersOpen} class="filters">
@@ -583,31 +574,6 @@
 </aside>
 
 <style>
-    .explorer-head {
-        display: grid;
-        grid-template-columns: 1fr minmax(18rem, 0.38fr);
-        gap: 3rem;
-        align-items: end;
-        padding-top: clamp(3.5rem, 8vw, 7rem);
-        padding-bottom: clamp(2.5rem, 5vw, 4rem);
-    }
-
-    .explorer-head h1 {
-        margin-bottom: 0;
-        font-family: var(--serif);
-        font-size: clamp(4rem, 8vw, 8rem);
-        font-weight: 400;
-        letter-spacing: -0.065em;
-        line-height: 0.88;
-    }
-
-    .explorer-head > p {
-        margin: 0;
-        color: var(--ink-soft);
-        font-family: var(--serif);
-        font-size: 1.05rem;
-    }
-
     .explorer-shell {
         display: grid;
         grid-template-columns: 18.5rem minmax(0, 1fr);
@@ -1208,10 +1174,6 @@
     }
 
     @media (max-width: 800px) {
-        .explorer-head {
-            grid-template-columns: 1fr;
-        }
-
         .explorer-shell {
             display: block;
             padding-right: 0;

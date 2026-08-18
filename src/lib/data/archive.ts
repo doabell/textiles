@@ -1,10 +1,10 @@
 import { parse } from "csv-parse/browser/esm/sync";
-import samplesCsv from "../../../pictures/datasets/image_samples.csv?raw";
-import paintingsCsv from "../../../pictures/datasets/painting_samples.csv?raw";
+import galleryCsv from "../../../pictures/datasets/material_gallery.csv?raw";
 
 export type ArchiveItem = {
     id: string;
-    type: "sample" | "painting";
+    identifier: string;
+    type: "sample";
     title: string;
     artist: string;
     textile: string;
@@ -15,25 +15,16 @@ export type ArchiveItem = {
     weave: string;
     fiber: string;
     geography: string;
+    quality: string;
+    sourceText: string;
+    additionalInfo: string;
     collection: string;
     inventory: string;
     date: string;
     catalogueUrl: string;
     image: string;
+    fullImage: string;
 };
-
-const imageModules = import.meta.glob("../../../pictures/img/*.jpg", {
-    eager: true,
-    query: "?url",
-    import: "default",
-}) as Record<string, string>;
-
-const images = new Map(
-    Object.entries(imageModules).map(([path, url]) => {
-        const id = path.match(/([^/\\]+)\.jpg$/)?.[1] ?? path;
-        return [id, url];
-    }),
-);
 
 function value(input: unknown) {
     const text = String(input ?? "").trim();
@@ -50,68 +41,70 @@ function records(csv: string) {
     }) as Record<string, string>[];
 }
 
-const samples: ArchiveItem[] = records(samplesCsv)
+function catalogueUrl(row: Record<string, string>) {
+    return (
+        [row.catalogue_url, row.catalogue_url_image]
+            .map(value)
+            .find((url) => /^https?:\/\//i.test(url)) ?? ""
+    );
+}
+
+function splitValues(input: string) {
+    return input
+        .split(/[,;]/)
+        .map((item) => item.trim())
+        .filter(Boolean);
+}
+
+function uniqueValues(values: string[]) {
+    return [...new Set(values)].sort((a, b) => a.localeCompare(b));
+}
+
+export const archiveItems: ArchiveItem[] = records(galleryCsv)
     .map((row) => {
-        const id = value(row.image_ID);
+        const id = value(row.mat_no);
+        const identifier = value(row.textile_identifier);
         const textile = value(row.textile_name);
+        const alternateTitle = value(row.title_other);
+        const filename = value(row.image_filename_app).replace(/^www[\\/]/i, "");
+
         return {
             id,
+            identifier,
             type: "sample" as const,
-            title: textile || "Unidentified textile sample",
+            title: textile || alternateTitle || "Unidentified textile",
             artist: "",
             textile: textile || "No known name",
-            primaryColor: value(row.textile_color_visual_primary),
-            secondaryColor: value(row.textile_color_visual_secondary),
+            primaryColor: value(row.textile_color_visual),
+            secondaryColor: "",
             pattern: value(row.textile_pattern_visual),
             process: value(row.textile_process_visual),
             weave: value(row.textile_weave_visual),
             fiber: value(row.textile_fiber_visual),
-            geography: value(row.textile_geography_catalogue),
+            geography:
+                value(row.textile_geography_catalogue) ||
+                value(row.orig_loc_region_catalogue) ||
+                value(row.orig_loc_port_catalogue),
+            quality: value(row.textile_quality_visual),
+            sourceText: value(row.text_source),
+            additionalInfo: value(row.addtl_info),
             collection: value(row.collection),
-            inventory: value(row.id_no),
-            date: value(row.Date),
-            catalogueUrl: value(row.catalogue_url),
-            image: images.get(id) ?? "",
+            inventory: value(row.id_no) || value(row.id_narrative),
+            date: value(row.orig_date),
+            catalogueUrl: catalogueUrl(row),
+            image: filename ? `/gallery/thumbs/${filename}` : "",
+            fullImage: filename ? `/gallery/full/${filename}` : "",
         };
     })
-    .filter((item) => item.id && item.image);
-
-const paintings: ArchiveItem[] = records(paintingsCsv)
-    .map((row) => {
-        const id = value(row.image_ID);
-        return {
-            id,
-            type: "painting" as const,
-            title: value(row.Title) || "Untitled pictorial record",
-            artist: value(row.Artist),
-            textile: value(row.textile_name) || "No known name",
-            primaryColor: value(row.textile_color_visual_primary),
-            secondaryColor: value(row.textile_color_visual_secondary),
-            pattern: value(row.textile_pattern_visual),
-            process: value(row.textile_process_visual),
-            weave: "",
-            fiber: "",
-            geography: "",
-            collection: value(row.collection),
-            inventory: value(row.id_no),
-            date: value(row.Date),
-            catalogueUrl: value(row.catalogue_url),
-            image: images.get(id) ?? "",
-        };
-    })
-    .filter((item) => item.id && item.image);
-
-export const archiveItems = [...samples, ...paintings];
+    .filter((item) => item.id && item.image)
+    .sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
 
 export const archiveOptions = {
-    colors: [
-        ...new Set(
-            archiveItems
-                .flatMap((item) => [item.primaryColor, item.secondaryColor])
-                .filter(Boolean),
-        ),
-    ].sort(),
-    patterns: [...new Set(archiveItems.map((item) => item.pattern).filter(Boolean))].sort(),
-    processes: [...new Set(archiveItems.map((item) => item.process).filter(Boolean))].sort(),
-    fibers: [...new Set(archiveItems.map((item) => item.fiber).filter(Boolean))].sort(),
+    textiles: uniqueValues(
+        archiveItems.map((item) => item.textile).filter((item) => item !== "No known name"),
+    ),
+    colors: uniqueValues(archiveItems.flatMap((item) => splitValues(item.primaryColor))),
+    patterns: uniqueValues(archiveItems.flatMap((item) => splitValues(item.pattern))),
+    processes: uniqueValues(archiveItems.flatMap((item) => splitValues(item.process))),
+    fibers: uniqueValues(archiveItems.flatMap((item) => splitValues(item.fiber))),
 };

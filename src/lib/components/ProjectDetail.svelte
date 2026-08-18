@@ -36,19 +36,21 @@
     </ol>
 </section>
 
-<aside class="modifier-note">
-    <div class="page-shell">
-        <Info size={23} strokeWidth={1.35} />
-        <div class="note-list">
-            {#each tool.notes as note}
-                <article>
-                    <p class="eyebrow">{note.title}</p>
-                    <p>{note.body}</p>
-                </article>
-            {/each}
+{#if tool.notes.length}
+    <aside class="modifier-note">
+        <div class="page-shell">
+            <Info size={23} strokeWidth={1.35} />
+            <div class="note-list">
+                {#each tool.notes as note}
+                    <article>
+                        <p class="eyebrow">{note.title}</p>
+                        <p>{note.body}</p>
+                    </article>
+                {/each}
+            </div>
         </div>
-    </div>
-</aside>
+    </aside>
+{/if}
 
 <style>
     .project-hero {

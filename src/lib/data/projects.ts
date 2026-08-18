@@ -13,6 +13,22 @@ export type ProjectTool = {
 
 export const projectTools: ProjectTool[] = [
     {
+        slug: "trade-explorer",
+        title: "Trade Data Explorer",
+        eyebrow: "Trade Data Explorer",
+        description: "Filter, compare, map, inspect, and download trade records.",
+        href: "/explore/",
+        action: "Explore the records",
+        creators: "Application created by the Dutch Textile Trade Project team",
+        instructions: [
+            "Filter by company, textile, route, date, or modifier.",
+            "Switch among charts, routes, and records.",
+            "Download filtered records as CSV.",
+        ],
+        notes: [],
+        accent: "madder",
+    },
+    {
         slug: "swatch-search",
         title: "Swatch Search",
         eyebrow: "Swatch Search",

@@ -3,10 +3,16 @@
 
     let {
         active,
-    }: { active: "textile-geographies" | "textiles-modifiers-and-values" | "swatch-search" } =
-        $props();
+    }: {
+        active:
+            | "trade-explorer"
+            | "textile-geographies"
+            | "textiles-modifiers-and-values"
+            | "swatch-search";
+    } = $props();
 
     const tools = [
+        projectTools.find((tool) => tool.slug === "trade-explorer"),
         projectTools.find((tool) => tool.slug === "textile-geographies"),
         projectTools.find((tool) => tool.slug === "textiles-modifiers-and-values"),
         projectTools.find((tool) => tool.slug === "swatch-search"),
@@ -66,7 +72,7 @@
     .research-tabs {
         grid-column: 1 / -1;
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(4, 1fr);
         margin-top: clamp(1.8rem, 3.5vw, 3rem);
         border: 1px solid var(--line-strong);
         border-bottom: 0;

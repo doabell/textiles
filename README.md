@@ -1,7 +1,7 @@
 # Dutch Textile Trade
 
 A modern, local-first remake of the Dutch Textile Trade research website. The new SvelteKit front
-end brings the project narrative, textile glossary, image archive, downloadable data, and three
+end brings the project narrative, textile glossary, image archive, downloadable data, and four
 redesigned research applications into one responsive site. The original R Shiny applications remain
 in the repository for reference.
 
@@ -45,7 +45,7 @@ No deployment or hosting configuration is included.
 - A zoomable OpenFreeMap route map
 - A two-cohort values and modifiers comparison lab
 - A client-side explorer for 9,463 VOC and WIC trade records
-- A searchable swatch archive with comparison tools
+- A searchable, paginated archive of 315 textile images with full-size views and comparison tools
 - Data, sources, contributors, contact, and methodology pages
 - Preserved URLs for the original project features
 - Fully prerendered output using SvelteKit's static adapter
@@ -74,9 +74,18 @@ The trade explorer is generated from:
 
 `pictures/datasets/WIC_VOC_Cleaned.csv`
 
-The swatch archive is generated from the CSV files and image folders under:
+The swatch archive is generated from:
 
-`pictures/img/`
+- `pictures/datasets/material_gallery.csv`
+- `static/gallery/thumbs/` for the paginated result grid
+- `static/gallery/full/` for full-size record and comparison views
+
+Those 315 records and source images were imported from
+[drewd1231/Textile_Image_Gallery](https://github.com/drewd1231/Textile_Image_Gallery) at commit
+`b1b1b62ee3340c200d0890a4fc0e578ce0f70bb1`. Annotated glossary images, captions, and collection
+credits are stored under `static/textile-media/` and indexed by
+`src/lib/data/original-textile-media.json`; they were recovered from the corresponding published
+entries on dutchtextiletrade.org.
 
 After changing source data, run `bun run check` and `bun run build`. SvelteKit will regenerate the
 static pages and bundled archive data.

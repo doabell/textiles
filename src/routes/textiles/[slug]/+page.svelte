@@ -6,11 +6,17 @@
         BookOpenText,
         ExternalLink,
     } from "@lucide/svelte";
+    import TextileMedia from "$lib/components/TextileMedia.svelte";
+    import { originalTextileMedia } from "$lib/data/original-textile-media";
     import { textiles } from "$lib/data/textiles";
     import { assetPath } from "$lib/utils/asset-path";
     import type { PageData } from "./$types";
 
     let { data }: { data: PageData } = $props();
+
+    const media = $derived(originalTextileMedia[data.textile.slug]);
+    const tradeTerm = $derived(encodeURIComponent(data.textile.dataTerms[0]));
+    const swatchTerm = $derived(encodeURIComponent(data.textile.shortName));
 
     function relatedLink(name: string) {
         const target = name.toLowerCase();
@@ -136,10 +142,14 @@
         </div>
     </section>
 
+    {#if media}
+        <TextileMedia {media} textileName={data.textile.name} />
+    {/if}
+
     <section class="data-section">
         <div class="page-shell data-grid">
             <div class="section-index">
-                <span>03</span>
+                <span>04</span>
                 <p>Quantitative record</p>
             </div>
             <div class="data-heading">
@@ -199,12 +209,24 @@
                 </div>
             {/if}
 
-            <a
-                class="button data-button"
-                href={`/explore/?textile=${encodeURIComponent(data.textile.dataTerms[0])}`}
-            >
-                Explore matching records <ArrowRight size={16} />
-            </a>
+            <nav class="research-app-links" aria-label={`Research ${data.textile.shortName}`}>
+                <a href={`/explore/?textile=${tradeTerm}`}>
+                    <strong>Explore</strong>
+                    <ArrowUpRight size={16} />
+                </a>
+                <a href={`/map/?textile=${tradeTerm}`}>
+                    <strong>Map</strong>
+                    <ArrowUpRight size={16} />
+                </a>
+                <a href={`/values/?textile=${tradeTerm}`}>
+                    <strong>Compare</strong>
+                    <ArrowUpRight size={16} />
+                </a>
+                <a href={`/swatches/?textile=${swatchTerm}`}>
+                    <strong>Swatches</strong>
+                    <ArrowUpRight size={16} />
+                </a>
+            </nav>
         </div>
     </section>
 
@@ -679,19 +701,43 @@
         font-family: var(--reading);
     }
 
-    .data-button {
-        grid-column: 2;
-        justify-self: start;
+    .research-app-links {
+        grid-column: 2 / -1;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1px;
         margin-top: 3rem;
+        border: 1px solid rgba(244, 239, 229, 0.25);
+        background: rgba(244, 239, 229, 0.25);
+    }
+
+    .research-app-links a {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 0.55rem 1rem;
+        min-height: 9.5rem;
+        padding: 1.35rem;
+        color: var(--paper);
+        background: var(--indigo-deep);
+        text-decoration: none;
+        transition: background 160ms ease;
+    }
+
+    .research-app-links a:hover {
         color: var(--ink);
-        border-color: var(--saffron);
         background: var(--saffron);
     }
 
-    .data-button:hover {
-        color: var(--saffron);
-        border-color: var(--saffron);
-        background: transparent;
+    .research-app-links strong {
+        align-self: end;
+        font-family: var(--serif);
+        font-size: clamp(1.8rem, 3vw, 3rem);
+        font-weight: 400;
+        letter-spacing: -0.04em;
+    }
+
+    .research-app-links :global(svg) {
+        align-self: end;
     }
 
     .entry-pagination {
@@ -778,7 +824,8 @@
         .data-heading,
         .data-stats,
         .destination-list,
-        .no-data {
+        .no-data,
+        .research-app-links {
             grid-column: 2;
         }
     }
@@ -813,6 +860,10 @@
 
         .data-heading > p:last-child {
             margin-top: 1.5rem;
+        }
+
+        .research-app-links {
+            grid-template-columns: 1fr;
         }
 
         .data-stats {

@@ -3,12 +3,18 @@
         ArrowRight,
         ArrowUpRight,
         ChartNoAxesColumnIncreasing,
+        Database,
         Route,
         Search,
     } from "@lucide/svelte";
     import { projectTools } from "$lib/data/projects";
 
-    const icons = [Search, ChartNoAxesColumnIncreasing, Route];
+    const icons: Record<string, typeof Database> = {
+        "trade-explorer": Database,
+        "swatch-search": Search,
+        "textiles-modifiers-and-values": ChartNoAxesColumnIncreasing,
+        "textile-geographies": Route,
+    };
 </script>
 
 <svelte:head>
@@ -34,7 +40,7 @@
 
 <section class="tools page-shell">
     {#each projectTools as tool, index}
-        {@const Icon = icons[index]}
+        {@const Icon = icons[tool.slug] ?? Database}
         <article class={tool.accent}>
             <div class="tool-top">
                 <span>0{index + 1}</span>
@@ -68,7 +74,7 @@
 
     .tools {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(2, 1fr);
         gap: 1px;
         padding-top: clamp(2.5rem, 5vw, 4.5rem);
         padding-bottom: clamp(5rem, 9vw, 8rem);
