@@ -1,4 +1,13 @@
 <script lang="ts">
+    import MultiSelect from "$lib/components/MultiSelect.svelte";
+    import ChartDownload from "$lib/components/ChartDownload.svelte";
+    import {
+        downloadBlob,
+        downloadChart,
+        downloadMapImage,
+        exportFilename,
+    } from "$lib/utils/download";
+
     import {
         ArrowDownToLine,
         ArrowRight,
@@ -34,9 +43,11 @@
     ].sort((a, b) => a.localeCompare(b));
 
     let company = $state("");
-    let textile = $state("");
-    let modifier = $state("");
-    let place = $state("");
+    let controlsOpen = $state(true);
+    let modifierMatch = $state<"all" | "any">("all");
+    let textile = $state<string[]>([]);
+    let modifier = $state<string[]>([]);
+    let place = $state<string[]>([]);
     let yearFrom = $state(firstYear);
     let yearTo = $state(lastYear);
     let metric = $state<"records" | "value">("records");
@@ -45,6 +56,7 @@
     let mapContainer = $state<HTMLDivElement>();
     let mapWidth = $state(1000);
     let mapStatus = $state<"loading" | "ready" | "error">("loading");
+    let mapExportReady = $state(false);
     let interactiveMap: LeafletMap | null = null;
     let leaflet: typeof import("leaflet") | null = null;
     let routeLayer: LeafletLayerGroup | null = null;
@@ -54,16 +66,19 @@
     const routeStyles = new Map<string, { color: string; weight: number }>();
     let destroyed = false;
 
-    const mapHeight = $derived(Math.max(540, Math.min(820, mapWidth * 0.68)));
+    const mapHeight = $derived(Math.max(420, Math.min(820, mapWidth * 0.72)));
     const normalize = (value: string) => value.toLocaleLowerCase("en").trim();
     const modifiers = [
         ...new Set(
             initialData.records.flatMap((record) => [
                 record.color,
+                record.inferredColor,
                 record.pattern,
                 record.process,
                 record.fiber,
                 record.quality,
+                record.geography,
+                record.other,
             ]),
         ),
     ]
@@ -71,29 +86,38 @@
         .sort((a, b) => a.localeCompare(b));
 
     const filtered = $derived.by(() =>
-        data.records.filter(
-            (record) =>
+        data.records.filter((record) => {
+            const terms = [
+                record.color,
+                record.inferredColor,
+                record.pattern,
+                record.process,
+                record.fiber,
+                record.quality,
+                record.geography,
+                record.other,
+            ].map(normalize);
+            const modifierMatches = modifier.map((value) => terms.includes(normalize(value)));
+            return (
                 (!company || record.company === company) &&
-                (!textile || normalize(record.textile).includes(normalize(textile))) &&
-                (!modifier ||
-                    [
-                        record.color,
-                        record.pattern,
-                        record.process,
-                        record.fiber,
-                        record.quality,
-                    ].some((value) => normalize(value).includes(normalize(modifier)))) &&
-                (!place || record.origin === place || record.destination === place) &&
-                (record.year === null || (record.year >= yearFrom && record.year <= yearTo)),
-        ),
+                (!textile.length ||
+                    textile.some((value) => normalize(record.textile) === normalize(value))) &&
+                (!modifier.length ||
+                    (modifierMatch === "all"
+                        ? modifierMatches.every(Boolean)
+                        : modifierMatches.some(Boolean))) &&
+                (!place.length ||
+                    place.includes(record.origin) ||
+                    place.includes(record.destination)) &&
+                (record.year === null || (record.year >= yearFrom && record.year <= yearTo))
+            );
+        }),
     );
 
     type RouteSummary = {
         key: string;
         origin: string;
         destination: string;
-        originPort: string;
-        destinationPort: string;
         originLat: number;
         originLong: number;
         destinationLat: number;
@@ -127,11 +151,8 @@
             ].join("|");
             const current = grouped.get(key) ?? {
                 key,
-                origin: record.origin || record.originPort || "Unrecorded origin",
-                destination:
-                    record.destination || record.destinationPort || "Unrecorded destination",
-                originPort: record.originPort,
-                destinationPort: record.destinationPort,
+                origin: record.origin || "Unrecorded origin",
+                destination: record.destination || "Unrecorded destination",
                 originLat: record.originLat,
                 originLong: record.originLong,
                 destinationLat: record.destinationLat,
@@ -144,7 +165,7 @@
 
             current.records += 1;
             current.value += record.value ?? 0;
-            current.textiles.add(record.textile);
+            if (record.textile) current.textiles.add(record.textile);
             current.companies.add(record.company);
             grouped.set(key, current);
         }
@@ -162,10 +183,13 @@
     const originCount = $derived(
         new Set(filtered.map((record) => record.origin).filter(Boolean)).size,
     );
-    const textileCount = $derived(new Set(filtered.map((record) => record.textile)).size);
+    const textileCount = $derived(
+        new Set(filtered.map((record) => record.textile).filter(Boolean)).size,
+    );
 
     onMount(() => {
-        textile = new URL(window.location.href).searchParams.get("textile") ?? "";
+        controlsOpen = !window.matchMedia("(max-width: 900px)").matches;
+        textile = new URL(window.location.href).searchParams.getAll("textile");
         if (!mapHost) return;
         const observer = new ResizeObserver(([entry]) => {
             mapWidth = Math.max(320, Math.floor(entry.contentRect.width));
@@ -214,6 +238,7 @@
         routeLines.clear();
         routeStyles.clear();
         mapStatus = "loading";
+        mapExportReady = false;
 
         try {
             const L = await import("leaflet");
@@ -238,19 +263,48 @@
             interactiveMap = map;
             routeRenderer = renderer;
 
-            L.tileLayer("https://tiles.openfreemap.org/natural_earth/ne2sr/{z}/{x}/{y}.png", {
-                minZoom: 1,
-                maxZoom: 5,
-                maxNativeZoom: 5,
-                noWrap: true,
-                detectRetina: false,
-                attribution:
-                    '<a href="https://openfreemap.org/">OpenFreeMap</a> · <a href="https://www.naturalearthdata.com/">Natural Earth</a>',
-            }).addTo(map);
+            let loadedTiles = 0;
+            let failedTiles = 0;
+            const tiles = L.tileLayer(
+                "https://tiles.openfreemap.org/natural_earth/ne2sr/{z}/{x}/{y}.png",
+                {
+                    minZoom: 1,
+                    maxZoom: 5,
+                    maxNativeZoom: 5,
+                    noWrap: true,
+                    bounds: [
+                        [-85.051129, -180],
+                        [85.051129, 180],
+                    ],
+                    crossOrigin: "anonymous",
+                    detectRetina: false,
+                    attribution:
+                        '<a href="https://openfreemap.org/">OpenFreeMap</a> · <a href="https://www.naturalearthdata.com/">Natural Earth</a>',
+                },
+            );
+            tiles.on({
+                loading: () => {
+                    mapExportReady = false;
+                    loadedTiles = 0;
+                    failedTiles = 0;
+                },
+                tileload: () => {
+                    loadedTiles += 1;
+                    if (!destroyed && interactiveMap === map) mapStatus = "ready";
+                },
+                tileerror: () => {
+                    failedTiles += 1;
+                },
+                load: () => {
+                    if (destroyed || interactiveMap !== map) return;
+                    mapStatus = !loadedTiles && failedTiles ? "error" : "ready";
+                    mapExportReady = failedTiles === 0;
+                },
+            });
+            tiles.addTo(map);
 
             routeLayer = L.layerGroup().addTo(map);
             pointLayer = L.layerGroup().addTo(map);
-            mapStatus = "ready";
             updateInteractiveRoutes(routes, routeMax, metric);
             updateSelectedRoute(selectedRouteKey);
         } catch {
@@ -359,12 +413,13 @@
 
     function resetFilters() {
         company = "";
-        textile = "";
-        modifier = "";
-        place = "";
+        textile = [];
+        modifier = [];
+        place = [];
         yearFrom = firstYear;
         yearTo = lastYear;
         selectedRouteKey = "";
+        modifierMatch = "all";
     }
 
     function formatNumber(value: number) {
@@ -382,6 +437,8 @@
     function downloadMappedRows() {
         const columns: (keyof TradeRecord)[] = [
             "company",
+            "exchangeNumber",
+            "source",
             "year",
             "origin",
             "originPort",
@@ -390,19 +447,82 @@
             "textile",
             "quantity",
             "unit",
+            "originalUnit",
             "value",
+            "pricePerUnit",
+            "priceUnit",
+            "color",
+            "inferredColor",
+            "pattern",
+            "process",
+            "fiber",
+            "quality",
+            "geography",
+            "other",
         ];
         const rows = [
             columns.join(","),
             ...filtered.map((record) => columns.map((column) => csvCell(record[column])).join(",")),
         ];
-        const blob = new Blob([rows.join("\n")], { type: "text/csv;charset=utf-8" });
-        const url = URL.createObjectURL(blob);
-        const anchor = document.createElement("a");
-        anchor.href = url;
-        anchor.download = "dutch-textile-trade-map-selection.csv";
-        anchor.click();
-        URL.revokeObjectURL(url);
+        const blob = new Blob(["\uFEFF", rows.join("\n")], { type: "text/csv;charset=utf-8" });
+        downloadBlob(
+            blob,
+            exportFilename(
+                "map-records",
+                [textile, company, place, modifier, yearFrom, yearTo],
+                "csv",
+            ),
+        );
+    }
+
+    function exportRoutesImage() {
+        return downloadChart({
+            title: "Textile Geographies",
+            context: [
+                "Years: " + yearFrom + "–" + yearTo,
+                "Textile: " + (textile.join(", ") || "All"),
+                "Company: " + (company || "VOC + WIC"),
+                "Region: " + (place.join(", ") || "All"),
+                "Modifiers: " + (modifier.join(", ") || "All"),
+                "Match: " + modifierMatch,
+            ],
+            series: [
+                {
+                    label: metric === "records" ? "Record count" : "Recorded value",
+                    color: "#1f4654",
+                },
+            ],
+            rows: topRoutes.map((row) => ({
+                label: row.origin + " → " + row.destination,
+                values: [row[metric]],
+                display: [formatNumber(row[metric]) + (metric === "value" ? " ƒ" : "")],
+            })),
+            filename: exportFilename(
+                "routes",
+                [textile, company, place, modifier, modifierMatch, yearFrom, yearTo, metric],
+                "png",
+            ),
+        });
+    }
+    function exportMapImage() {
+        if (!mapContainer) return Promise.reject(new Error("Map unavailable"));
+        return downloadMapImage(mapContainer, {
+            title: "Textile Geographies",
+            context: [
+                "Years: " + yearFrom + "–" + yearTo,
+                "Textile: " + (textile.join(", ") || "All"),
+                "Region: " + (place.join(", ") || "All"),
+                "Company: " + (company || "VOC + WIC"),
+                "Modifiers: " + (modifier.join(", ") || "All"),
+                "Measure: " + metric,
+                "Match: " + modifierMatch,
+            ],
+            filename: exportFilename(
+                "map",
+                [textile, company, place, modifier, modifierMatch, yearFrom, yearTo, metric],
+                "png",
+            ),
+        });
     }
 </script>
 
@@ -420,112 +540,126 @@
     <div class="page-shell map-layout">
         <aside class="map-controls">
             <div class="control-heading">
-                <div>
-                    <Compass size={18} />
-                    <h2>Filters</h2>
-                </div>
+                <button
+                    class="filter-toggle"
+                    type="button"
+                    aria-expanded={controlsOpen}
+                    onclick={() => (controlsOpen = !controlsOpen)}
+                    ><Compass size={17} /> Filters</button
+                >
                 <button type="button" class="reset" onclick={resetFilters}>
                     <RotateCcw size={14} /> Reset
                 </button>
             </div>
 
-            <fieldset>
-                <legend>Company network</legend>
-                <div class="segmented">
-                    <button class:active={!company} type="button" onclick={() => (company = "")}
-                        >Both</button
-                    >
-                    <button
-                        class:active={company === "VOC"}
-                        type="button"
-                        onclick={() => (company = "VOC")}
-                    >
-                        <CompanyMark company="VOC" inverted={company !== "VOC"} />
-                    </button>
-                    <button
-                        class:active={company === "WIC"}
-                        type="button"
-                        onclick={() => (company = "WIC")}
-                    >
-                        <CompanyMark company="WIC" inverted={company !== "WIC"} />
-                    </button>
-                </div>
-            </fieldset>
+            {#if controlsOpen}
+                <fieldset>
+                    <legend>Company network</legend>
+                    <div class="segmented">
+                        <button class:active={!company} type="button" onclick={() => (company = "")}
+                            >Both</button
+                        >
+                        <button
+                            class:active={company === "VOC"}
+                            type="button"
+                            onclick={() => (company = "VOC")}
+                        >
+                            <CompanyMark company="VOC" inverted={company === "VOC"} />
+                        </button>
+                        <button
+                            class:active={company === "WIC"}
+                            type="button"
+                            onclick={() => (company = "WIC")}
+                        >
+                            <CompanyMark company="WIC" inverted={company === "WIC"} />
+                        </button>
+                    </div>
+                </fieldset>
 
-            <label class="field">
-                <span>Textile name</span>
-                <div class="input-with-icon">
-                    <Search size={14} />
-                    <input bind:value={textile} list="map-textiles" placeholder="All textiles" />
-                </div>
-                <datalist id="map-textiles">
-                    {#each data.options.textiles as option}
-                        <option value={option}></option>
-                    {/each}
-                </datalist>
-            </label>
-
-            <label class="field">
-                <span>Archival modifier</span>
-                <div class="input-with-icon">
-                    <Search size={14} />
-                    <input
-                        bind:value={modifier}
-                        list="map-modifiers"
-                        placeholder="Color, pattern, process, fiber, or quality"
+                <div class="field">
+                    <MultiSelect
+                        label="Textile name"
+                        options={data.options.textiles}
+                        bind:value={textile}
                     />
                 </div>
-                <datalist id="map-modifiers">
-                    {#each modifiers as option}
-                        <option value={option}></option>
-                    {/each}
-                </datalist>
-            </label>
 
-            <label class="field">
-                <span>Origin or destination</span>
-                <select bind:value={place}>
-                    <option value="">All recorded regions</option>
-                    {#each places as option}
-                        <option value={option}>{option}</option>
-                    {/each}
-                </select>
-            </label>
-
-            <div class="years">
-                <label>
-                    <span>From</span>
-                    <input type="number" min={firstYear} max={yearTo} bind:value={yearFrom} />
-                </label>
-                <i>—</i>
-                <label>
-                    <span>To</span>
-                    <input type="number" min={yearFrom} max={lastYear} bind:value={yearTo} />
-                </label>
-            </div>
-
-            <fieldset>
-                <legend>Route weight</legend>
-                <div class="segmented">
-                    <button
-                        class:active={metric === "records"}
-                        type="button"
-                        onclick={() => (metric = "records")}>Records</button
-                    >
-                    <button
-                        class:active={metric === "value"}
-                        type="button"
-                        onclick={() => (metric = "value")}>Recorded value</button
-                    >
+                <div class="field">
+                    <MultiSelect
+                        label="Archival modifier"
+                        options={modifiers}
+                        bind:value={modifier}
+                    />
                 </div>
-            </fieldset>
+                <fieldset>
+                    <legend>Match modifiers</legend>
+                    <div class="segmented">
+                        <button
+                            type="button"
+                            class:active={modifierMatch === "all"}
+                            onclick={() => (modifierMatch = "all")}>All</button
+                        ><button
+                            type="button"
+                            class:active={modifierMatch === "any"}
+                            onclick={() => (modifierMatch = "any")}>Any</button
+                        >
+                    </div>
+                </fieldset>
 
-            <button class="download" type="button" onclick={downloadMappedRows}>
-                <ArrowDownToLine size={15} /> Download this selection
-            </button>
+                <div class="field">
+                    <MultiSelect
+                        label="Origin or destination"
+                        options={places}
+                        bind:value={place}
+                    />
+                </div>
+
+                <div class="years">
+                    <label>
+                        <span>From</span>
+                        <input type="number" min={firstYear} max={yearTo} bind:value={yearFrom} />
+                    </label>
+                    <i>—</i>
+                    <label>
+                        <span>To</span>
+                        <input type="number" min={yearFrom} max={lastYear} bind:value={yearTo} />
+                    </label>
+                </div>
+
+                <fieldset>
+                    <legend>Route weight</legend>
+                    <div class="segmented">
+                        <button
+                            class:active={metric === "records"}
+                            type="button"
+                            onclick={() => (metric = "records")}>Records</button
+                        >
+                        <button
+                            class:active={metric === "value"}
+                            type="button"
+                            onclick={() => (metric = "value")}>Recorded value</button
+                        >
+                    </div>
+                </fieldset>
+
+                <button class="download" type="button" onclick={downloadMappedRows}>
+                    <ArrowDownToLine size={15} /> Download this selection
+                </button>
+            {/if}
         </aside>
 
         <div class="map-stage">
+            <div class="export-toolbar">
+                <ChartDownload
+                    action={exportMapImage}
+                    label="Download map"
+                    disabled={!mapExportReady}
+                /><ChartDownload
+                    action={exportRoutesImage}
+                    label="Download routes"
+                    disabled={!topRoutes.length}
+                />
+            </div>
             <div class="map-summary" aria-live="polite">
                 <div><strong>{formatNumber(mappedRecords)}</strong><span>mapped records</span></div>
                 <div><strong>{routes.length}</strong><span>distinct routes</span></div>
@@ -543,13 +677,13 @@
                     class="tile-map"
                     bind:this={mapContainer}
                     style={`height: ${mapHeight}px`}
-                    aria-label="Interactive OpenFreeMap map of textile trade routes"
+                    aria-label="Textile trade map"
                 ></div>
                 {#if mapStatus === "loading"}
                     <div class="map-status" role="status">Loading OpenFreeMap…</div>
                 {:else if mapStatus === "error"}
                     <div class="map-status error" role="alert">
-                        <p>OpenFreeMap could not be loaded.</p>
+                        <p>Map unavailable.</p>
                         <button type="button" onclick={initializeMap}
                             ><RotateCcw size={14} /> Retry</button
                         >
@@ -572,11 +706,11 @@
                             <ArrowRight size={17} />
                             {selectedRoute.destination}
                         </h2>
-                        <span>
-                            {selectedRoute.records} records · {selectedRoute.textiles.size} textile names
-                            ·
-                            {formatNumber(selectedRoute.value)} guilders recorded
-                        </span>
+                        <div class="selected-metrics">
+                            <span>{selectedRoute.records} records</span>
+                            <span>{selectedRoute.textiles.size} textiles</span>
+                            <span>{formatNumber(selectedRoute.value)} guilders</span>
+                        </div>
                     </div>
                     <button type="button" onclick={() => (selectedRouteKey = "")}>Clear</button>
                 </article>
@@ -618,7 +752,7 @@
             {:else}
                 <div class="empty">
                     <Route size={24} />
-                    <p>No routes match this combination. Broaden one of the filters.</p>
+                    <p>No matching routes.</p>
                 </div>
             {/if}
         </aside>
@@ -639,660 +773,496 @@
 </section>
 
 <style>
-    .map-app {
-        padding: 1px 0;
-        color: var(--paper);
-        background: var(--ink);
+    .export-toolbar {
+        display: flex;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        padding-bottom: 1rem;
     }
-
+    .map-app {
+        font-family: var(--sans);
+        font-variant-numeric: tabular-nums lining-nums;
+        background: var(--paper);
+        color: var(--ink);
+        padding: 2rem 0 4rem;
+    }
     .map-layout {
         display: grid;
         grid-template-columns: 15rem minmax(0, 1fr);
-        padding-top: 1.25rem;
-        padding-bottom: 1.25rem;
+        gap: 2.5rem;
+        align-items: start;
     }
-
-    .map-controls,
-    .route-ranking {
+    .map-controls {
+        position: sticky;
+        top: 6rem;
+        grid-row: 1 / 3;
         min-width: 0;
-        padding: 1.2rem;
-        background: #22221d;
-        border: 1px solid rgba(244, 239, 229, 0.14);
+        padding-right: 1.8rem;
+        border-right: 1px solid var(--line-strong);
     }
-
     .control-heading,
     .ranking-head,
-    .control-heading > div,
     .ranking-head > div {
         display: flex;
-        gap: 0.55rem;
         align-items: center;
         justify-content: space-between;
+        gap: 0.7rem;
     }
-
-    .control-heading > div,
-    .ranking-head > div {
-        justify-content: flex-start;
+    .control-heading {
+        padding-bottom: 1.25rem;
+        border-bottom: 1px solid var(--line);
     }
-
-    .map-controls h2,
-    .route-ranking h2 {
-        margin: 0;
-        font-family: var(--sans);
-        font-size: 0.96rem;
-        font-weight: 650;
-        letter-spacing: -0.015em;
-    }
-
-    .reset {
+    .control-heading button {
         display: inline-flex;
-        gap: 0.3rem;
         align-items: center;
+        gap: 0.4rem;
+        min-height: 2rem;
         padding: 0;
-        color: rgba(244, 239, 229, 0.62);
-        background: none;
         border: 0;
-        font-size: 0.72rem;
+        background: none;
+        color: inherit;
+        font-size: 0.8125rem;
         cursor: pointer;
     }
-
+    .control-heading .filter-toggle {
+        font-weight: 700;
+        font-size: 0.95rem;
+    }
     fieldset,
     .field,
     .years {
-        margin: 1.35rem 0 0;
+        display: block;
         padding: 0;
+        margin: 1.3rem 0 0;
         border: 0;
     }
-
     legend,
-    .field > span,
     .years label span {
         display: block;
-        margin-bottom: 0.45rem;
-        color: rgba(244, 239, 229, 0.58);
-        font-family: var(--sans);
-        font-size: 0.7rem;
-        font-weight: 560;
-        letter-spacing: 0;
+        margin-bottom: 0.5rem;
+        color: var(--ink-soft);
+        font-size: 0.8125rem;
+        font-weight: 600;
     }
-
     .segmented {
-        display: grid;
-        grid-auto-flow: column;
-        grid-auto-columns: 1fr;
-        overflow: hidden;
-        border-radius: 0.55rem;
+        display: flex;
+        border-bottom: 1px solid var(--line-strong);
     }
-
     .segmented button {
-        min-height: 2.85rem;
+        flex: 1;
+        display: grid;
+        place-items: center;
+        min-height: 2.8rem;
         padding: 0.4rem;
-        color: rgba(244, 239, 229, 0.68);
+        border: 0;
         background: transparent;
-        border: 1px solid rgba(244, 239, 229, 0.2);
-        font-size: 0.75rem;
+        color: inherit;
+        font-size: 0.8125rem;
         cursor: pointer;
     }
-
-    .segmented button + button {
-        border-left: 0;
-    }
-
     .segmented button.active {
-        color: var(--ink);
-        background: var(--saffron);
+        background: var(--ink);
+        color: var(--paper);
     }
-
-    .field input,
-    .field select,
     .years input {
         width: 100%;
-        min-height: 2.85rem;
-        padding: 0.65rem 0.78rem;
-        color: var(--paper);
-        background: #171713;
-        border: 1px solid rgba(244, 239, 229, 0.2);
-        border-radius: 0.55rem;
-        font-size: 0.8rem;
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+        min-height: 2.8rem;
+        padding: 0.55rem 0.65rem;
+        border: 1px solid var(--line-strong);
+        border-radius: 0;
+        color: var(--ink);
+        background: transparent;
+        font-size: 0.875rem;
     }
-
-    .field select {
-        padding-right: 2.2rem;
-        appearance: none;
-        background-image:
-            linear-gradient(45deg, transparent 50%, rgba(244, 239, 229, 0.7) 50%),
-            linear-gradient(135deg, rgba(244, 239, 229, 0.7) 50%, transparent 50%);
-        background-repeat: no-repeat;
-        background-position:
-            calc(100% - 1rem) 52%,
-            calc(100% - 0.7rem) 52%;
-        background-size:
-            0.32rem 0.32rem,
-            0.32rem 0.32rem;
-    }
-
-    .input-with-icon {
-        position: relative;
-    }
-
-    .input-with-icon :global(svg) {
-        position: absolute;
-        top: 50%;
-        left: 0.65rem;
-        color: rgba(244, 239, 229, 0.46);
-        transform: translateY(-50%);
-    }
-
-    .input-with-icon input {
-        padding-left: 2rem;
-    }
-
     .years {
         display: grid;
         grid-template-columns: 1fr auto 1fr;
-        gap: 0.55rem;
+        gap: 0.4rem;
         align-items: end;
     }
-
     .years i {
-        padding-bottom: 0.55rem;
-        color: rgba(244, 239, 229, 0.35);
+        padding-bottom: 0.65rem;
         font-style: normal;
     }
-
     .download {
         display: flex;
-        gap: 0.45rem;
-        align-items: center;
         justify-content: center;
+        align-items: center;
+        gap: 0.5rem;
         width: 100%;
         min-height: 2.85rem;
+        padding: 0.65rem 0.4rem;
         margin-top: 1.5rem;
-        color: var(--paper);
-        background: transparent;
-        border: 1px solid rgba(244, 239, 229, 0.28);
-        border-radius: 0.55rem;
-        font-size: 0.74rem;
-        font-weight: 700;
+        border: 0;
+        background: var(--accent-fill);
+        color: white;
+        font-size: 0.8125rem;
+        font-weight: 600;
         cursor: pointer;
     }
-
-    .download:hover {
-        color: var(--ink);
-        background: var(--paper);
+    button:focus-visible,
+    input:focus-visible {
+        outline: 2px solid var(--accent-fill);
+        outline-offset: 3px;
     }
-
     .map-stage {
         min-width: 0;
-        padding-left: 1.25rem;
     }
-
     .map-summary {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
-        margin-bottom: 1rem;
-        border: 1px solid rgba(244, 239, 229, 0.14);
+        gap: 1rem;
+        padding: 0 0 1.8rem;
     }
-
-    .map-summary > div {
-        padding: 0.85rem 1rem;
-        border-left: 1px solid rgba(244, 239, 229, 0.14);
-    }
-
-    .map-summary > div:first-child {
-        border-left: 0;
-    }
-
     .map-summary strong,
     .map-summary span {
         display: block;
     }
-
     .map-summary strong {
-        font-family: var(--serif);
-        font-size: 1.35rem;
-        font-weight: 400;
-    }
-
-    .map-summary span {
-        color: rgba(244, 239, 229, 0.48);
         font-family: var(--sans);
-        font-size: 0.68rem;
-        letter-spacing: 0;
+        font-size: clamp(1.5rem, 2.8vw, 3rem);
+        letter-spacing: -0.035em;
+        font-weight: 500;
+        line-height: 1.1;
+        font-variant-numeric: tabular-nums lining-nums;
     }
-
+    .map-summary span {
+        margin-top: 0.45rem;
+        font-size: 0.8125rem;
+        color: var(--ink-soft);
+    }
     .map-wrap {
         position: relative;
         width: 100%;
         overflow: hidden;
-        background: #173742;
+        background: #203535;
     }
-
     .tile-map {
         position: absolute;
         z-index: 1;
         inset: 0;
         width: 100%;
         opacity: 0;
-        transition: opacity 320ms ease;
+        transition: opacity 300ms;
     }
-
     .tile-map.ready {
         opacity: 1;
     }
-
     :global(.leaflet-container.tile-map) {
         background: #d7d2c4;
         font-family: var(--sans);
     }
-
     .tile-map :global(.leaflet-control-zoom) {
-        overflow: hidden;
-        border: 1px solid rgba(23, 23, 17, 0.28);
+        border: 0;
         border-radius: 0;
-        box-shadow: 0 0.35rem 1rem rgba(23, 23, 17, 0.14);
+        box-shadow: none;
     }
-
     .tile-map :global(.leaflet-control-zoom a) {
+        width: 38px;
+        height: 38px;
+        line-height: 38px;
         color: var(--ink);
-        border-color: rgba(23, 23, 17, 0.16);
-        background: rgba(251, 248, 241, 0.94);
-        font-family: var(--sans);
-        font-weight: 500;
-    }
-
-    .tile-map :global(.leaflet-control-zoom a:hover) {
         background: var(--paper);
+        border-color: var(--line);
+        font-weight: 400;
     }
-
     .tile-map :global(.leaflet-control-attribution) {
-        padding: 0.18rem 0.35rem;
-        color: rgba(23, 23, 17, 0.68);
-        background: rgba(251, 248, 241, 0.88);
-        font-family: var(--sans);
-        font-size: 0.56rem;
+        padding: 0.2rem 0.4rem;
+        background: color-mix(in srgb, var(--paper) 90%, transparent);
+        font-size: 0.8125rem;
     }
-
     .tile-map :global(.leaflet-control-attribution a) {
-        color: var(--indigo-deep);
+        color: var(--ink);
     }
-
     .map-status {
         position: absolute;
         z-index: 2;
-        top: 0.75rem;
-        left: 0.75rem;
-        padding: 0.45rem 0.6rem;
-        color: rgba(244, 239, 229, 0.78);
-        background: rgba(23, 23, 17, 0.84);
-        font-family: var(--sans);
-        font-size: 0.68rem;
-        letter-spacing: 0;
+        top: 1rem;
+        left: 1rem;
+        padding: 0.6rem 0.8rem;
+        background: var(--paper);
+        color: var(--ink);
+        font-size: 0.8125rem;
     }
-
     .map-status.error {
         top: 50%;
         left: 50%;
         display: grid;
         justify-items: center;
-        gap: 0.8rem;
-        width: min(22rem, calc(100% - 2rem));
-        padding: 1.2rem;
-        text-align: center;
+        gap: 1rem;
+        width: min(21rem, calc(100% - 2rem));
+        padding: 2rem;
         transform: translate(-50%, -50%);
     }
-
     .map-status.error p {
         margin: 0;
-        font-size: 0.78rem;
-        letter-spacing: 0;
-        text-transform: none;
+        font-size: 1.1rem;
     }
-
     .map-status.error button {
-        display: inline-flex;
-        gap: 0.4rem;
+        display: flex;
+        gap: 0.45rem;
         align-items: center;
-        padding: 0.5rem 0.75rem;
-        color: var(--ink);
+        min-height: 2.8rem;
+        padding: 0.5rem 1rem;
         border: 0;
-        background: var(--paper);
-        font-weight: 700;
+        background: var(--accent-fill);
+        color: white;
         cursor: pointer;
     }
-
     .legend {
         position: absolute;
         z-index: 3;
-        right: 0.75rem;
-        bottom: 0.75rem;
+        left: 1rem;
+        bottom: 1.5rem;
         display: flex;
         flex-wrap: wrap;
-        gap: 0.8rem;
-        padding: 0.5rem 0.65rem;
-        color: rgba(244, 239, 229, 0.72);
-        background: rgba(23, 23, 17, 0.84);
-        font-family: var(--sans);
-        font-size: 0.66rem;
+        gap: 1rem;
+        padding: 0.6rem 0.8rem;
+        background: #171711df;
+        color: var(--inverse-ink);
+        font-size: 0.8125rem;
     }
-
     .legend span {
         display: flex;
         gap: 0.35rem;
         align-items: center;
     }
-
     .legend i {
         width: 0.45rem;
         height: 0.45rem;
         border-radius: 50%;
     }
-
     .legend .origin {
         background: #f1c96c;
     }
-
     .legend .destination {
         background: #c8634f;
     }
-
     .legend b {
         width: 1.4rem;
-        height: 0.22rem;
+        height: 0.2rem;
         background: #f1c96c;
     }
-
     .selected-route {
         display: grid;
         grid-template-columns: auto 1fr auto;
-        gap: 0.9rem;
+        gap: 1rem;
         align-items: center;
-        margin-top: 1rem;
-        padding: 0.9rem;
-        color: var(--ink);
-        background: var(--saffron);
+        padding: 1.2rem 0;
+        border-bottom: 2px solid var(--accent-fill);
     }
-
     .selected-route p {
         margin: 0;
-        font-family: var(--sans);
-        font-size: 0.68rem;
-        font-weight: 620;
-        letter-spacing: 0;
+        color: var(--ink-soft);
+        font-size: 0.8125rem;
     }
-
     .selected-route h2 {
         display: flex;
-        gap: 0.35rem;
         align-items: center;
-        margin: 0.15rem 0;
-        font-family: var(--sans);
-        font-size: 1rem;
-        font-weight: 650;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin: 0.3rem 0;
+        font: 600 1.1rem var(--sans);
     }
-
-    .selected-route span {
-        font-size: 0.66rem;
+    .selected-metrics {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.3rem 1rem;
+        font-size: 0.8125rem;
+        color: var(--ink-soft);
     }
-
     .selected-route button {
-        padding: 0;
-        background: none;
+        min-height: 2.75rem;
+        padding: 0.5rem;
         border: 0;
-        font-size: 0.65rem;
+        background: none;
         text-decoration: underline;
         cursor: pointer;
     }
-
+    .route-ranking {
+        grid-column: 2;
+        min-width: 0;
+    }
     .ranking-head {
-        padding-bottom: 1rem;
-        border-bottom: 1px solid rgba(244, 239, 229, 0.15);
+        margin-bottom: 0.75rem;
     }
-
+    .ranking-head h2 {
+        margin: 0;
+        font: 600 1.2rem var(--sans);
+        letter-spacing: var(--display-tracking, -0.025em);
+    }
     .ranking-head > span {
-        color: rgba(244, 239, 229, 0.42);
-        font-family: var(--sans);
-        font-size: 0.7rem;
+        font-size: 0.8125rem;
+        color: var(--ink-soft);
     }
-
     .route-ranking ol {
         display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 1px;
+        grid-template-columns: 1fr 1fr;
+        column-gap: 2rem;
         margin: 0;
         padding: 0;
         list-style: none;
-        background: rgba(244, 239, 229, 0.12);
     }
-
     .route-ranking li {
         min-width: 0;
-        background: #22221d;
+        border-top: 1px solid var(--line-strong);
     }
-
     .route-ranking li button {
         position: relative;
         display: grid;
-        grid-template-columns: 2.1rem minmax(0, 1fr) auto;
-        gap: 0.45rem 0.8rem;
-        align-items: start;
+        grid-template-columns: 1.8rem minmax(0, 1fr) auto;
+        gap: 0.75rem;
         width: 100%;
         min-height: 6rem;
-        padding: 1rem 1.1rem 1.15rem;
-        color: var(--paper);
-        text-align: left;
-        background: transparent;
+        padding: 1rem 0 1.4rem;
         border: 0;
+        background: none;
+        color: inherit;
+        text-align: left;
         cursor: pointer;
     }
-
-    .route-ranking li button.active {
-        color: var(--saffron);
-        background: rgba(198, 149, 63, 0.07);
+    .route-ranking li button.active,
+    .route-ranking li button:hover {
+        color: var(--accent-fill);
     }
-
     .rank {
-        display: grid;
-        place-items: center;
-        width: 1.75rem;
-        height: 1.75rem;
-        color: rgba(244, 239, 229, 0.46);
-        border: 1px solid rgba(244, 239, 229, 0.18);
-        font-family: var(--sans);
-        font-size: 0.65rem;
-    }
-
-    .route-total {
         padding-top: 0.15rem;
-        color: rgba(244, 239, 229, 0.65);
-        font-family: var(--sans);
-        font-size: 0.75rem;
-        font-variant-numeric: tabular-nums;
+        color: var(--ink-soft);
+        font-size: 0.8125rem;
+        font-variant-numeric: tabular-nums lining-nums;
     }
-
     .route-name {
         min-width: 0;
     }
-
-    .route-name strong,
-    .route-name i {
-        display: block;
-        overflow-wrap: anywhere;
-    }
-
     .route-name strong {
-        font-family: var(--sans);
-        font-size: 0.86rem;
-        font-weight: 650;
-        line-height: 1.25;
+        display: block;
+        font-size: 0.93rem;
+        font-weight: 600;
     }
-
     .route-name i {
         display: flex;
-        gap: 0.2rem;
         align-items: center;
-        margin-top: 0.25rem;
-        color: rgba(244, 239, 229, 0.48);
-        font-family: var(--reading);
-        font-size: 0.78rem;
+        gap: 0.3rem;
+        margin-top: 0.2rem;
+        font-size: 0.8125rem;
+        color: var(--ink-soft);
         font-style: normal;
-        line-height: 1.25;
     }
-
+    .route-total {
+        font-size: 0.85rem;
+        font-variant-numeric: tabular-nums lining-nums;
+    }
     .route-bar {
         position: absolute;
-        right: 1.1rem;
         bottom: 0.7rem;
-        left: 4rem;
+        left: 2.55rem;
+        right: 0;
         height: 2px;
-        background: rgba(244, 239, 229, 0.08);
+        background: var(--line);
     }
-
     .route-bar::after {
+        content: "";
         display: block;
         width: var(--route-width);
         height: 100%;
-        content: "";
-        background: var(--saffron);
+        background: var(--accent-fill);
     }
-
     .empty {
-        padding: 3rem 1rem;
-        color: rgba(244, 239, 229, 0.5);
+        padding: 4rem 0;
         text-align: center;
+        color: var(--ink-soft);
     }
-
-    .empty :global(svg) {
-        margin-bottom: 1rem;
-    }
-
     .empty p {
-        margin: 0;
-        font-size: 0.72rem;
+        font-size: 0.85rem;
     }
-
     .map-notes {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) minmax(20rem, 0.55fr);
-        gap: clamp(3rem, 8vw, 9rem);
-        padding-top: clamp(6rem, 10vw, 10rem);
-        padding-bottom: clamp(6rem, 10vw, 10rem);
+        grid-template-columns: 1fr 2fr;
+        gap: 3rem;
+        padding-top: 4rem;
+        padding-bottom: 5rem;
+        border-top: 1px solid var(--line-strong);
     }
-
-    .map-notes > div:first-child {
-        align-self: start;
-    }
-
     .map-notes h2 {
-        max-width: 14ch;
-        font-family: var(--serif);
-        font-size: clamp(2.8rem, 5.5vw, 5.5rem);
-        font-weight: 400;
-        letter-spacing: -0.05em;
-        line-height: 0.95;
-    }
-
-    .map-notes > p {
-        align-self: end;
         margin: 0;
+        max-width: 14ch;
+        font: 500 clamp(1.6rem, 3vw, 3rem)/1.1 var(--sans);
+        letter-spacing: var(--display-tracking, -0.04em);
+    }
+    .map-notes p {
+        margin: 0;
+        max-width: 65ch;
+        font-size: 0.98rem;
+        line-height: 1.7;
         color: var(--ink-soft);
-        font-family: var(--reading);
-        font-size: 1rem;
-        line-height: 1.68;
     }
-
-    .route-ranking {
-        grid-column: 1 / -1;
-        margin-top: 1rem;
-    }
-
-    .ranking-head {
-        padding: 0 0 1rem;
-        border-bottom: 1px solid rgba(244, 239, 229, 0.15);
-    }
-
-    @media (max-width: 980px) {
-        .route-ranking ol {
-            grid-template-columns: 1fr;
-        }
-    }
-
-    @media (max-width: 850px) {
+    @media (max-width: 1100px) {
         .map-layout {
-            grid-template-columns: 1fr;
+            grid-template-columns: 13rem minmax(0, 1fr);
+            gap: 1.5rem;
         }
-
         .map-controls {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 0.85rem 1rem;
+            padding-right: 1rem;
         }
-
-        .control-heading,
-        .download {
-            grid-column: 1 / -1;
-        }
-
-        fieldset,
-        .field,
-        .years {
-            margin-top: 0;
-        }
-
-        .map-stage {
-            padding: 1rem 0 0;
-        }
-
         .route-ranking ol {
-            border: 0;
-        }
-
-        .map-notes {
-            grid-template-columns: 1fr;
+            column-gap: 1rem;
         }
     }
-
-    @media (max-width: 620px) {
-        .map-controls {
+    @media (max-width: 900px) {
+        .years input {
+            font-size: 1rem;
+        }
+        .map-app {
+            padding-top: 1rem;
+        }
+        .map-layout {
             display: block;
         }
-
-        fieldset,
-        .field,
-        .years {
-            margin-top: 1rem;
+        .map-controls {
+            position: static;
+            padding: 0 0 1.5rem;
+            border-right: 0;
         }
-
+        .control-heading {
+            padding-bottom: 0.75rem;
+        }
+        .map-stage {
+            padding-top: 1rem;
+        }
+        .route-ranking {
+            margin-top: 2rem;
+        }
+        .map-summary strong {
+            font-size: clamp(1.5rem, 4vw, 2.7rem);
+        }
+        .map-notes {
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+    }
+    @media (max-width: 550px) {
         .map-summary {
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
         }
-
-        .map-summary > div:nth-child(3) {
-            border-top: 1px solid rgba(244, 239, 229, 0.14);
-            border-left: 0;
+        .map-summary strong {
+            font-size: 2.2rem;
         }
-
-        .map-summary > div:nth-child(4) {
-            border-top: 1px solid rgba(244, 239, 229, 0.14);
-        }
-
         .route-ranking ol {
             grid-template-columns: 1fr;
         }
-
         .selected-route {
-            grid-template-columns: auto 1fr;
+            grid-template-columns: 1fr auto;
         }
-
-        .selected-route button {
-            grid-column: 2;
-            justify-self: start;
+        .selected-icon {
+            display: none;
         }
-
         .legend {
-            left: 0.5rem;
-            justify-content: center;
+            right: 0.6rem;
+            left: 0.6rem;
+            gap: 0.7rem;
+            font-size: 0.8125rem;
         }
     }
 </style>

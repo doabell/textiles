@@ -4,7 +4,6 @@
     import { originalPageCopy } from "$lib/data/original-page-copy";
     import { assetPath } from "$lib/utils/asset-path";
     import fullWorkbook from "../../../data/WICVOCDataAll_071723.xlsx?url";
-    import cleanedCsv from "../../../pictures/datasets/WIC_VOC_Cleaned.csv?url";
 
     const body = originalPageCopy.data.html.replace(/^\s*<p[^>]*>[\s\S]*?<\/p>/, "").trim();
 </script>
@@ -30,12 +29,12 @@
         <p>Download csv file of dataset, last updated July 17, 2023.</p>
     </div>
     <div class="downloads">
-        <a href={assetPath(cleanedCsv)} download>
+        <a href="/data/trade-records.csv" download="dutch-textile-trade-records.csv">
             <FileSpreadsheet size={24} strokeWidth={1.4} />
-            <span>WIC_VOC_Cleaned.csv</span>
+            <span>DutchTextileTrade.csv</span>
             <ArrowDownToLine size={18} />
         </a>
-        <a href={assetPath(fullWorkbook)} download>
+        <a href={assetPath(fullWorkbook)} download="dutch-textile-trade-source-workbook.xlsx">
             <FileSpreadsheet size={24} strokeWidth={1.4} />
             <span>WICVOCDataAll_071723.xlsx</span>
             <ArrowDownToLine size={18} />
@@ -78,7 +77,7 @@
         padding: 1.2rem;
         border-bottom: 1px solid var(--line-strong);
         font-family: var(--sans);
-        font-size: 0.62rem;
+        font-size: 0.75rem;
         text-decoration: none;
     }
 
@@ -102,7 +101,7 @@
         color: var(--madder);
         border-top: 1px solid var(--line-strong);
         font-family: var(--sans);
-        font-size: 0.74rem;
+        font-size: 0.8125rem;
         font-weight: 650;
         letter-spacing: 0;
     }

@@ -1,6 +1,4 @@
 <script lang="ts">
-    let submitted = $state(false);
-
     function composeEmail(event: SubmitEvent) {
         event.preventDefault();
         const form = event.currentTarget as HTMLFormElement;
@@ -10,14 +8,13 @@
         const message = String(values.get("message") ?? "");
         const subject = encodeURIComponent("Dutch Textile Trade Project");
         const body = encodeURIComponent(`${message}\n\nFrom: ${name}\nReply to: ${email}`);
-        submitted = true;
         window.location.href = `mailto:carriea@middlebury.edu?subject=${subject}&body=${body}`;
     }
 </script>
 
 <svelte:head>
     <title>Contact — Dutch Textile Trade Project</title>
-    <meta name="description" content="Contact the Dutch Textile Trade Project." />
+    <meta name="description" content="Contact" />
 </svelte:head>
 
 <div class="page-shell">
@@ -42,17 +39,14 @@
             <span>Your message</span>
             <textarea name="message" rows="10" required></textarea>
         </label>
-        <button class="button" type="submit">Submit</button>
-        {#if submitted}
-            <p class="form-status">Your email app should now be open.</p>
-        {/if}
+        <button class="button" type="submit">Compose email</button>
     </form>
 </section>
 
 <style>
     .contact-section {
         max-width: 65ch;
-        padding-top: clamp(5rem, 10vw, 10rem);
+        padding-top: clamp(2rem, 4vw, 4rem);
         padding-bottom: clamp(6rem, 11vw, 11rem);
     }
 
@@ -71,8 +65,8 @@
         margin-bottom: 0.45rem;
         color: var(--ink-soft);
         font-family: var(--sans);
-        font-size: 0.56rem;
-        letter-spacing: 0.08em;
+        font-size: 0.8125rem;
+        letter-spacing: 0.035em;
         text-transform: uppercase;
     }
 
@@ -102,11 +96,5 @@
 
     form .button {
         cursor: pointer;
-    }
-
-    .form-status {
-        margin-top: 1rem;
-        color: var(--indigo);
-        font-family: var(--serif);
     }
 </style>

@@ -1,13 +1,31 @@
 <script lang="ts">
-    import { page } from "$app/state";
+    import { onNavigate } from "$app/navigation";
+    import { navigating, page } from "$app/state";
     import "@fontsource-variable/instrument-sans/wght.css";
-    import "@fontsource-variable/source-sans-3/wght.css";
+    import "@fontsource-variable/newsreader/standard.css";
+    import "@fontsource-variable/newsreader/standard-italic.css";
     import "../app.css";
+    import "$lib/design/feels.css";
     import SiteFooter from "$lib/components/SiteFooter.svelte";
     import SiteHeader from "$lib/components/SiteHeader.svelte";
 
     let { children } = $props();
     const socialImage = $derived(new URL("/og.png", page.url).href);
+
+    onNavigate((navigation) => {
+        if (
+            !document.startViewTransition ||
+            window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        )
+            return;
+        return new Promise<void>((resolve) => {
+            const transition = document.startViewTransition(async () => {
+                resolve();
+                await navigation.complete;
+            });
+            void transition.finished.catch(() => undefined);
+        });
+    });
 </script>
 
 <svelte:head>
@@ -35,6 +53,11 @@
 
 <a class="skip-link" href="#main-content">Skip to content</a>
 <SiteHeader />
+{#if navigating.to}<div
+        class="navigation-progress"
+        role="progressbar"
+        aria-label="Loading"
+    ></div>{/if}
 <main id="main-content">
     {@render children()}
 </main>

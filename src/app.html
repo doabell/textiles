@@ -2,8 +2,24 @@
 <html lang="en">
     <head>
         <meta charset="utf-8" />
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="theme-color" content="#f4efe5" />
+        <script>
+            (() => {
+                const feels = ["editorial", "gallery", "immersive", "folio"];
+                let feel = new URL(location.href).searchParams.get("feel");
+                if (!feels.includes(feel)) {
+                    try {
+                        feel = localStorage.getItem("textiles-feel");
+                    } catch {}
+                }
+                if (!feels.includes(feel)) feel = "editorial";
+                document.documentElement.dataset.feel = feel;
+                document.documentElement.style.colorScheme =
+                    feel === "immersive" ? "dark" : "light";
+            })();
+        </script>
         %sveltekit.head%
     </head>
     <body data-sveltekit-preload-data="hover">

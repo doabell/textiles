@@ -3,10 +3,7 @@
     import { originalPageCopy } from "$lib/data/original-page-copy";
 
     const sourceHtml = originalPageCopy.sources.html
-        .replace(
-            "/wp-content/uploads/2023/03/SRC_Primary.xlsx",
-            "https://dutchtextiletrade.org/wp-content/uploads/2023/03/SRC_Primary.xlsx",
-        )
+        .replace("/wp-content/uploads/2023/03/SRC_Primary.xlsx", "/SRC_Primary.xlsx")
         .replace(
             "<strong>Secondary Sources</strong>",
             '<strong id="secondary">Secondary Sources</strong>',

@@ -1,73 +1,81 @@
 <script lang="ts">
     import OriginalCopy from "$lib/components/OriginalCopy.svelte";
     import { originalPageCopy } from "$lib/data/original-page-copy";
-
     const accessedDate = new Intl.DateTimeFormat("en-US", {
         year: "numeric",
         month: "long",
         day: "numeric",
     }).format(new Date());
-    const sourceHtml = originalPageCopy.about.html.replaceAll("[insert date]", accessedDate);
-    const match = sourceHtml.match(/^\s*<p[^>]*>([\s\S]*?)<\/p>([\s\S]*)$/);
-    const opening = match?.[1] ?? "";
-    const body = match?.[2] ?? sourceHtml;
+    const sourceHtml = originalPageCopy.about.html
+        .replaceAll("[insert date]", accessedDate)
+        .replace(
+            "<p><strong>State of the project: </strong>",
+            '<h2 id="state">State of the project:</h2><p>',
+        )
+        .replace(
+            "<p><strong>Overview of the website:</strong></p>",
+            '<h2 id="overview">Overview of the website:</h2>',
+        )
+        .replace("<p><strong>Support:</strong></p>", '<h2 id="support">Support:</h2>')
+        .replace(
+            "<p><strong>How to Cite:&nbsp;</strong></p>",
+            '<h2 id="citation">How to Cite:</h2>',
+        )
+        .replace(/<p><strong>(Chicago Manual Style[^<]+)<\/strong><\/p>/g, "<h3>$1</h3>")
+        .replace(
+            "<p><strong>Data visualizations generated from the project apps can be cited like this</strong>: </p>",
+            "<h3>Data visualizations generated from the project apps can be cited like this:</h3>",
+        );
 </script>
 
-<svelte:head>
-    <title>About — Dutch Textile Trade Project</title>
-    <meta
+<svelte:head
+    ><title>About — Dutch Textile Trade Project</title><meta
         name="description"
-        content="Welcome to the Dutch Textile Trade Project. This project aims to understand the circulation of textiles on Dutch ships around the world in the seventeenth and eighteenth century, by examining data drawn from trade records alongside samples of textiles and visual culture depicting the use of textiles. The Visual Textile Glossary is our centerpiece, providing each historical textile term with a short definition and a longer essay contextualizing that textile’s production and circulation, with visual and material examples, and you can explore and download the relevant data."
-    />
-</svelte:head>
+        content="Welcome to the Dutch Textile Trade Project."
+    /></svelte:head
+>
 
-<div class="page-shell">
-    <header class="page-intro">
-        <div>
-            <h1>About</h1>
-        </div>
-        <div class="lede original-opening">{@html opening}</div>
-    </header>
-</div>
-
+<div class="page-shell"><header class="page-intro"><h1>About</h1></header></div>
 <section class="about-copy page-shell">
-    <div class="copy-marker">
-        <span>About the project</span>
-    </div>
-    <OriginalCopy html={body} />
+    <nav aria-label="Page sections">
+        <a href="#state">Project</a><a href="#overview">Overview</a><a href="#support">Support</a><a
+            href="#citation">Citation</a
+        >
+    </nav>
+    <OriginalCopy html={sourceHtml} />
 </section>
 
 <style>
-    .page-intro h1 {
-        max-width: 9ch;
-    }
-
-    .original-opening :global(p) {
-        margin: 0;
-    }
-
     .about-copy {
         display: grid;
-        grid-template-columns: minmax(7.5rem, 10rem) minmax(0, 65ch);
+        grid-template-columns: minmax(7.5rem, 10rem) minmax(0, 1fr);
         gap: clamp(2.5rem, 6vw, 6rem);
-        justify-content: center;
-        padding-top: clamp(3.5rem, 7vw, 6rem);
-        padding-bottom: clamp(5rem, 9vw, 8rem);
+        padding-block: clamp(3rem, 6vw, 6rem) clamp(5rem, 9vw, 8rem);
     }
-
-    .copy-marker {
-        padding-top: 0.35rem;
-        color: var(--madder);
+    nav {
+        position: sticky;
+        top: 7rem;
+        display: grid;
+        align-self: start;
         border-top: 1px solid var(--line-strong);
-        font-family: var(--sans);
-        font-size: 0.74rem;
-        font-weight: 650;
-        letter-spacing: 0;
     }
-
+    nav a {
+        padding: 0.8rem 0;
+        border-bottom: 1px solid var(--line);
+        font: var(--type-label);
+        text-decoration: none;
+    }
+    nav a:hover {
+        color: var(--madder);
+    }
     @media (max-width: 700px) {
         .about-copy {
             grid-template-columns: 1fr;
+            gap: 2rem;
+        }
+        nav {
+            position: static;
+            grid-template-columns: repeat(4, 1fr);
         }
     }
 </style>

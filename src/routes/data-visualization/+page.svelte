@@ -39,19 +39,19 @@
 </div>
 
 <section class="tools page-shell">
-    {#each projectTools as tool, index}
+    {#each projectTools as tool}
         {@const Icon = icons[tool.slug] ?? Database}
         <article class={tool.accent}>
             <div class="tool-top">
-                <span>0{index + 1}</span>
                 <Icon size={26} strokeWidth={1.3} />
             </div>
-            <p class="tool-eyebrow">{tool.eyebrow}</p>
             <h2>{tool.title}</h2>
-            <p class="tool-description">{tool.description}</p>
+            {#if tool.description}<p class="tool-description">{tool.description}</p>{/if}
             <div class="tool-links">
                 <a class="button" href={tool.href}>{tool.action} <ArrowRight size={15} /></a>
-                <a href={`/projects/${tool.slug}/`}>Read instructions <ArrowUpRight size={13} /></a>
+                {#if tool.instructions.length}<a href={`/projects/${tool.slug}/`}
+                        >Original instructions <ArrowUpRight size={13} /></a
+                    >{/if}
             </div>
         </article>
     {/each}
@@ -64,29 +64,29 @@
 
     .visualization-intro {
         align-items: center;
-        padding-top: clamp(3.5rem, 7vw, 6rem);
+        padding-top: clamp(3rem, 6vw, 5rem);
         padding-bottom: clamp(3rem, 6vw, 5rem);
     }
 
     .visualization-intro h1 {
-        font-size: clamp(3.4rem, 7vw, 7rem);
+        font-size: clamp(3rem, 5.7vw, 6rem);
     }
 
     .tools {
         display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 1px;
+        grid-template-columns: 1fr;
+        gap: 0;
         padding-top: clamp(2.5rem, 5vw, 4.5rem);
         padding-bottom: clamp(5rem, 9vw, 8rem);
-        background: var(--line-strong);
-        background-clip: content-box;
     }
 
     .tools article {
-        display: flex;
-        flex-direction: column;
-        min-height: 24rem;
-        padding: clamp(1.3rem, 3vw, 2.2rem);
+        display: grid;
+        grid-template-columns: 2rem 0.9fr 1fr;
+        gap: 1.5rem 2rem;
+        align-items: start;
+        padding: 2.3rem 0;
+        border-top: 1px solid var(--line);
         background: var(--paper);
     }
 
@@ -94,47 +94,23 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding-bottom: 1.2rem;
-        border-bottom: 1px solid var(--line);
-    }
-
-    .tool-top span,
-    .tool-eyebrow {
-        color: var(--madder);
-        font-family: var(--sans);
-        font-size: 0.55rem;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-    }
-
-    .indigo .tool-top span,
-    .indigo .tool-eyebrow {
-        color: var(--indigo);
-    }
-
-    .saffron .tool-top span,
-    .saffron .tool-eyebrow {
-        color: #956c24;
-    }
-
-    .tool-eyebrow {
-        margin-top: 2.5rem;
-        margin-bottom: 1rem;
+        padding-top: 0.4rem;
+        color: var(--madder-dark);
     }
 
     .tools h2 {
         margin-bottom: 1.2rem;
-        font-family: var(--serif);
-        font-size: clamp(2rem, 3.1vw, 3.15rem);
-        font-weight: 400;
-        letter-spacing: -0.05em;
-        line-height: 0.95;
+        font-family: var(--editorial-font);
+        font-size: clamp(1.75rem, 2.7vw, 2.7rem);
+        font-weight: var(--display-weight, 400);
+        letter-spacing: var(--display-tracking, -0.025em);
+        line-height: 1.08;
     }
 
     .tool-description {
         color: var(--ink-soft);
         font-family: var(--reading);
-        font-size: 0.94rem;
+        font-size: 1.1875rem;
         line-height: 1.58;
     }
 
@@ -144,7 +120,8 @@
         gap: 1.1rem;
         align-items: center;
         margin-top: auto;
-        padding-top: 2rem;
+        padding-top: 0;
+        grid-column: 2 / -1;
     }
 
     .tool-links > a:not(.button) {
@@ -152,7 +129,7 @@
         align-items: center;
         gap: 0.35rem;
         color: var(--ink-soft);
-        font-size: 0.65rem;
+        font-size: 0.85rem;
         font-weight: 700;
         text-underline-offset: 0.3rem;
     }
@@ -163,11 +140,15 @@
         }
 
         .tools article {
-            min-height: 21rem;
+            grid-template-columns: 1.5rem minmax(0, 1fr);
+            gap: 1rem;
         }
-
-        .tool-eyebrow {
-            margin-top: 3rem;
+        .tool-description {
+            grid-column: 2;
+            margin-top: 0;
+        }
+        .tools h2 {
+            margin-bottom: 0;
         }
     }
 </style>

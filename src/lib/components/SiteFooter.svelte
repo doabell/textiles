@@ -1,5 +1,4 @@
 <script lang="ts">
-    import { page } from "$app/state";
     import { ArrowUpRight } from "@lucide/svelte";
     import BrandMark from "./BrandMark.svelte";
 
@@ -9,18 +8,13 @@
         month: "2-digit",
         day: "2-digit",
     }).format(new Date());
-    const citationUrl = $derived(`https://dutchtextiletrade.org${page.url.pathname}`);
 </script>
 
 <footer class="site-footer">
     <div class="footer-lead">
-        <BrandMark />
-        <p>
-            This project aims to understand the circulation of globally-sourced textiles on Dutch
-            ships around the world in the seventeenth and eighteenth centuries by examining data
-            drawn from trade records alongside samples of textiles and visual culture depicting
-            textiles in use.
-        </p>
+        <a class="brand" href="/"
+            ><BrandMark /><span class="brand-title">The Dutch<br />Textile Trade Project</span></a
+        >
     </div>
 
     <div class="footer-links">
@@ -51,17 +45,43 @@
         <p>Copyright © {year} Dutch Textile Trade</p>
         <div class="citation">
             <p>Carrie Anderson and Marsely Kehoe. <em>The Dutch Textile Trade Project</em>.</p>
-            <p><a href={citationUrl}>{citationUrl}</a>. Accessed {accessedDate}.</p>
+            <p><a href="/">www.dutchtextiletrade.org</a>. Accessed {accessedDate}.</p>
         </div>
-        <p>
+        <div class="footer-license">
             <a
+                class="license-badge"
                 href="https://creativecommons.org/licenses/by-nc-sa/4.0/"
                 target="_blank"
                 rel="license noreferrer"
             >
-                This work is licensed under a Creative Commons Attribution-NonCommercial-ShareAlike
-                4.0 International License.
+                <img src="/marks/cc-by-nc-sa.svg" alt="CC BY-NC-SA" width="120" height="42" />
             </a>
-        </p>
+            <p>
+                This work is licensed under a
+                <a
+                    href="https://creativecommons.org/licenses/by-nc-sa/4.0/"
+                    target="_blank"
+                    rel="license noreferrer"
+                    >Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International License</a
+                >.
+            </p>
+        </div>
     </div>
 </footer>
+
+<style>
+    .footer-license {
+        display: grid;
+        justify-items: start;
+        gap: 0.8rem;
+        max-width: 28rem;
+        min-width: 0;
+    }
+    .license-badge {
+        display: block;
+    }
+    .license-badge img {
+        width: 120px;
+        height: 42px;
+    }
+</style>

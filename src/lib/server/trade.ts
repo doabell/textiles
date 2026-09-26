@@ -1,11 +1,13 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
-import { parse } from "csv-parse/sync";
-
-type SourceRow = Record<string, string>;
+import { geoArea, geoCentroid } from "d3-geo";
+import type { Feature, FeatureCollection, Geometry } from "geojson";
+import { readRDataFrame } from "./rds.ts";
 
 export type TradeRecord = {
     id: number;
+    exchangeNumber: string;
+    source: string;
     company: "VOC" | "WIC" | "Unknown";
     year: number | null;
     origin: string;
@@ -19,29 +21,45 @@ export type TradeRecord = {
     textile: string;
     quantity: number | null;
     unit: string;
+    originalUnit: string;
     value: number | null;
     pricePerUnit: number | null;
+    priceUnit: string;
     color: string;
+    inferredColor: string;
     pattern: string;
     process: string;
     fiber: string;
+    geography: string;
     quality: string;
+    other: string;
 };
 
-let sourceRows: SourceRow[] | undefined;
 let tradeRecords: TradeRecord[] | undefined;
+let originalRecords: ReturnType<typeof readRDataFrame> | undefined;
 
-const emptyValues = new Set(["", "NA", "N/A", "null", "undefined"]);
-
-function clean(value: string | undefined) {
-    if (!value || emptyValues.has(value.trim())) return "";
-    return value.trim();
+function getOriginalRecords() {
+    return (originalRecords ??= readRDataFrame(resolve(process.cwd(), "data", "week4.rds")));
 }
 
-function numberOrNull(value: string | undefined) {
-    const cleaned = clean(value).replace(/,/g, "");
-    if (!cleaned) return null;
-    const number = Number(cleaned);
+export function getOriginalTradeCsv() {
+    const records = getOriginalRecords();
+    const columns = Object.keys(records[0] ?? {});
+    const cell = (value: string | number | null) =>
+        '"' + String(value ?? "").replaceAll('"', '""') + '"';
+    return [
+        columns.map(cell).join(","),
+        ...records.map((row) => columns.map((column) => cell(row[column])).join(",")),
+    ].join("\r\n");
+}
+
+function clean(value: string | number | null | undefined) {
+    return value === null || value === undefined ? "" : String(value).trim();
+}
+
+function numberOrNull(value: string | number | null | undefined) {
+    if (value === null || value === undefined || value === "") return null;
+    const number = Number(value);
     return Number.isFinite(number) ? number : null;
 }
 
@@ -54,68 +72,101 @@ function normalizeName(value: string) {
         .trim();
 }
 
-function getSourceRows() {
-    if (sourceRows) return sourceRows;
+// The source GeoJSON follows the RFC winding convention; D3 expects clockwise
+// exterior rings for spherical polygons smaller than a hemisphere.
+function sphericalGeometry(geometry: Geometry): Geometry {
+    if (geometry.type === "GeometryCollection") {
+        return { ...geometry, geometries: geometry.geometries.map(sphericalGeometry) };
+    }
+    if (geometry.type === "Polygon") {
+        return geoArea(geometry) > 2 * Math.PI
+            ? { ...geometry, coordinates: geometry.coordinates.map((ring) => [...ring].reverse()) }
+            : geometry;
+    }
+    if (geometry.type === "MultiPolygon") {
+        return {
+            ...geometry,
+            coordinates: geometry.coordinates.map((coordinates) => {
+                const polygon = sphericalGeometry({ type: "Polygon", coordinates });
+                return polygon.type === "Polygon" ? polygon.coordinates : coordinates;
+            }),
+        };
+    }
+    return geometry;
+}
 
-    const filePath = resolve(process.cwd(), "pictures", "datasets", "WIC_VOC_Cleaned.csv");
-    sourceRows = parse(readFileSync(filePath, "utf8"), {
-        columns: true,
-        bom: true,
-        skip_empty_lines: true,
-        relax_column_count: true,
-    }) as SourceRow[];
-
-    return sourceRows;
+function getRegionCenters() {
+    const directory = resolve(process.cwd(), "data", "geoJSON");
+    const centers = new Map<string, [number, number]>();
+    for (const file of readdirSync(directory).filter((file) => file.endsWith(".json"))) {
+        const source = JSON.parse(readFileSync(resolve(directory, file), "utf8")) as
+            Geometry | Feature | FeatureCollection;
+        const geometry =
+            source.type === "FeatureCollection"
+                ? {
+                      ...source,
+                      features: source.features.map((feature) => ({
+                          ...feature,
+                          geometry: sphericalGeometry(feature.geometry),
+                      })),
+                  }
+                : source.type === "Feature"
+                  ? { ...source, geometry: sphericalGeometry(source.geometry) }
+                  : sphericalGeometry(source);
+        const center = geoCentroid(geometry);
+        if (!center.every(Number.isFinite)) throw new Error("Invalid geography: " + file);
+        centers.set(file.slice(0, -5), center);
+    }
+    return centers;
 }
 
 export function getTradeRecords() {
     if (tradeRecords) return tradeRecords;
-
-    tradeRecords = getSourceRows()
-        .map((row, index): TradeRecord | null => {
-            const textile = clean(row.textile_name);
-            if (!textile) return null;
-
-            const companyValue = clean(row.company);
-            const company =
-                companyValue === "VOC" || companyValue === "WIC"
-                    ? companyValue
-                    : ("Unknown" as const);
-            const guildersPer = numberOrNull(row.guilders_per);
-            const stuiversPer = numberOrNull(row.stuivers_per);
-            const penningenPer = numberOrNull(row.pennigen_per);
-            const calculatedPrice =
-                guildersPer !== null || stuiversPer !== null || penningenPer !== null
-                    ? (guildersPer ?? 0) + (stuiversPer ?? 0) / 20 + (penningenPer ?? 0) / 320
-                    : null;
-
-            return {
-                id: index + 1,
-                company,
-                year: numberOrNull(row.orig_yr) ?? numberOrNull(row.dest_yr),
-                origin: clean(row.orig_loc_region_modern) || clean(row.orig_loc_region),
-                destination: clean(row.dest_loc_region) || clean(row.dest_loc_region_modern),
-                originPort: clean(row.orig_loc_port_modern) || clean(row.orig_loc_port),
-                destinationPort: clean(row.dest_loc_port_modern) || clean(row.dest_loc_port),
-                originLat: numberOrNull(row.orig_loc_lat) ?? numberOrNull(row["orig_loc_lat...9"]),
-                originLong:
-                    numberOrNull(row.orig_loc_long) ?? numberOrNull(row["orig_loc_lat...10"]),
-                destinationLat: numberOrNull(row.dest_loc_lat),
-                destinationLong: numberOrNull(row.dest_loc_long),
-                textile,
-                quantity: numberOrNull(row.textile_quantity),
-                unit: clean(row.textile_unit),
-                value: numberOrNull(row.textile_value) ?? numberOrNull(row.total_value_1),
-                pricePerUnit: calculatedPrice,
-                color: clean(row.textile_color_arch) || clean(row.color_category),
-                pattern: clean(row.textile_pattern_arch),
-                process: clean(row.textile_process_arch),
-                fiber: clean(row.textile_fiber_arch),
-                quality: clean(row.textile_quality_arch) || clean(row.textile_quality_inferred),
-            };
-        })
-        .filter((row): row is TradeRecord => row !== null);
-
+    // Both original Shiny apps read this exact processed dataset. Its currency,
+    // quantity and price calculations are preserved from data/clean.R.
+    const rows = getOriginalRecords();
+    const centers = getRegionCenters();
+    tradeRecords = rows.map((row, index): TradeRecord => {
+        const companyValue = clean(row.company);
+        const originalUnit = clean(row.textile_unit);
+        // clean.R converts these quantities to pieces before saving the RDS.
+        const unit = ["el", "half ps.", "halve ps."].includes(originalUnit) ? "ps." : originalUnit;
+        const origin = clean(row.orig_loc_region_modern);
+        const destination = clean(row.dest_loc_region);
+        // These are representative region positions, not inferred port positions.
+        const originCenter = centers.get(origin);
+        const destinationCenter = centers.get(destination);
+        return {
+            id: index + 1,
+            exchangeNumber: clean(row.exchange_nr),
+            source: clean(row.source),
+            company: companyValue === "VOC" || companyValue === "WIC" ? companyValue : "Unknown",
+            year: numberOrNull(row.orig_yr) ?? numberOrNull(row.dest_yr),
+            origin,
+            destination,
+            originPort: clean(row.orig_loc_port_modern),
+            destinationPort: clean(row.dest_loc_port),
+            originLat: originCenter?.[1] ?? null,
+            originLong: originCenter?.[0] ?? null,
+            destinationLat: destinationCenter?.[1] ?? null,
+            destinationLong: destinationCenter?.[0] ?? null,
+            textile: clean(row.textile_name),
+            quantity: numberOrNull(row.textile_quantity),
+            unit,
+            originalUnit,
+            value: numberOrNull(row.total_value),
+            pricePerUnit: numberOrNull(row.price_per_unit),
+            priceUnit: unit,
+            color: clean(row.textile_color_arch),
+            inferredColor: clean(row.textile_color_inf),
+            pattern: clean(row.textile_pattern_arch),
+            process: clean(row.textile_process_arch),
+            fiber: clean(row.textile_fiber_arch),
+            geography: clean(row.textile_geography_arch),
+            quality: clean(row.textile_quality_arch),
+            other: clean(row.textile_other_unknown_arch),
+        };
+    });
     return tradeRecords;
 }
 

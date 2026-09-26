@@ -1,24 +1,28 @@
 <script lang="ts">
-    import { ArrowUpRight, Search, X } from "@lucide/svelte";
+    import { waterfall } from "$lib/utils/waterfall";
+    import { imageSize } from "$lib/utils/image-size";
+    import { ArrowUpRight, LayoutGrid, List, Search, X } from "@lucide/svelte";
     import { textiles } from "$lib/data/textiles";
     import { assetPath } from "$lib/utils/asset-path";
-
     let query = $state("");
-
+    let view = $state<"gallery" | "index">("gallery");
     const filtered = $derived(
         textiles.filter((textile) => {
             const terms = [
                 textile.name,
                 textile.definition,
                 ...textile.variants,
-                ...textile.related,
+                textile.relatedDescription,
             ]
                 .join(" ")
                 .toLowerCase();
-            return terms.includes(query.trim().toLowerCase());
+            return query
+                .trim()
+                .toLowerCase()
+                .split(/\s+/)
+                .every((term) => terms.includes(term));
         }),
     );
-
     function clearFilters() {
         query = "";
     }
@@ -32,304 +36,389 @@
     />
 </svelte:head>
 
-<div class="page-shell">
-    <header class="page-intro">
-        <div>
-            <p class="eyebrow">The centerpiece of this project</p>
-            <h1>Visual textile glossary</h1>
+<header class="catalogue-intro page-shell">
+    <h1>Visual Textile<br /><em>Glossary</em></h1>
+    <p>
+        The centerpiece of this project, the Visual Textile Glossary, provides each historical
+        textile term with a short definition and a longer essay contextualizing that textile’s
+        production and circulation. Each essay also includes visual and material examples, an
+        interactive web application, and open access data.
+    </p>
+</header>
+
+<div class="catalogue-toolbar">
+    <div class="toolbar-inner page-shell">
+        <label class="search-box">
+            <Search size={20} strokeWidth={1.5} aria-hidden="true" />
+            <span class="sr-only">Search textiles</span>
+            <input type="search" placeholder="Search textiles…" bind:value={query} />
+            {#if query}<button type="button" aria-label="Clear search" onclick={clearFilters}
+                    ><X size={18} /></button
+                >{/if}
+        </label>
+        <span class="result-count" role="status" aria-live="polite"
+            >{filtered.length} {filtered.length === 1 ? "entry" : "entries"}</span
+        >
+        <div class="view-switch" aria-label="Display">
+            <button
+                type="button"
+                aria-label="Gallery view"
+                aria-pressed={view === "gallery"}
+                onclick={() => (view = "gallery")}
+                ><LayoutGrid size={19} strokeWidth={1.5} /></button
+            >
+            <button
+                type="button"
+                aria-label="Index view"
+                aria-pressed={view === "index"}
+                onclick={() => (view = "index")}><List size={21} strokeWidth={1.5} /></button
+            >
         </div>
-        <p class="lede">
-            The centerpiece of this project, the Visual Textile Glossary, provides each historical
-            textile term with a short definition and a longer essay contextualizing that textile’s
-            production and circulation. Each essay also includes visual and material examples, an
-            interactive web application, and open access data.
-        </p>
-    </header>
+    </div>
 </div>
 
-<section class="glossary-controls page-shell" aria-label="Filter glossary">
-    <label class="search-box">
-        <Search size={18} strokeWidth={1.6} aria-hidden="true" />
-        <span class="sr-only">Search textile names, materials, and techniques</span>
-        <input type="search" placeholder="Search a name, material, technique…" bind:value={query} />
-        {#if query}
-            <button type="button" aria-label="Clear search" onclick={() => (query = "")}>
-                <X size={16} />
-            </button>
-        {/if}
-    </label>
-</section>
-
 <section class="results page-shell">
-    <div class="results-meta">
-        <p><strong>{filtered.length}</strong> {filtered.length === 1 ? "entry" : "entries"}</p>
-        {#if query}
-            <button type="button" onclick={clearFilters}>Reset filters</button>
-        {/if}
-    </div>
-
     {#if filtered.length}
-        <div class="glossary-grid">
+        <div
+            class:as-index={view === "index"}
+            class="glossary-grid"
+            use:waterfall={view === "gallery"}
+        >
             {#each filtered as textile, index}
-                <a
-                    class:wide={index % 7 === 0}
-                    class="entry-card"
-                    href={`/textiles/${textile.slug}/`}
-                >
+                <a class="entry-card" href={"/textiles/" + textile.slug + "/"}>
                     <figure>
                         <img
+                            {...imageSize(textile.image)}
                             src={assetPath(textile.image)}
                             alt=""
-                            loading={index > 5 ? "lazy" : "eager"}
+                            loading={index > 3 ? "lazy" : "eager"}
                         />
                     </figure>
-                    <div class="entry-card-copy">
-                        <div class="entry-index">{String(index + 1).padStart(2, "0")}</div>
-                        <div>
-                            <h2>{textile.name}</h2>
-                            <span>{textile.definition}</span>
-                        </div>
-                        <ArrowUpRight
-                            class="entry-arrow"
-                            size={18}
-                            strokeWidth={1.5}
-                            aria-hidden="true"
-                        />
+                    <div class="entry-copy">
+                        <h2>{textile.name}</h2>
+                        <p>{textile.definition}</p>
                     </div>
+                    <span class="entry-arrow"
+                        ><ArrowUpRight size={26} strokeWidth={1.3} aria-hidden="true" /></span
+                    >
                 </a>
             {/each}
         </div>
     {:else}
         <div class="empty-state">
-            <p class="eyebrow">No matching entries</p>
+            <p>No matching entries</p>
             <button class="button" type="button" onclick={clearFilters}>Show all textiles</button>
         </div>
     {/if}
 </section>
 
 <style>
-    .sr-only {
-        position: absolute;
-        width: 1px;
-        height: 1px;
-        padding: 0;
-        overflow: hidden;
-        clip: rect(0, 0, 0, 0);
-        white-space: nowrap;
-        border: 0;
-    }
-
-    .page-intro h1 {
-        max-width: 9ch;
-    }
-
-    .glossary-controls {
+    .catalogue-intro {
         display: grid;
-        grid-template-columns: minmax(18rem, 1fr);
-        gap: 1rem;
+        grid-template-columns: 1.2fr 0.8fr;
         align-items: end;
-        padding-top: 2rem;
-        padding-bottom: 2rem;
-        border-bottom: 1px solid var(--line);
+        gap: clamp(2rem, 6vw, 7rem);
+        padding-top: clamp(3rem, 6vw, 6rem);
+        padding-bottom: clamp(3rem, 6vw, 6rem);
     }
-
-    .search-box {
+    h1 {
+        margin: 0;
+        font-family: var(--display-font, var(--sans));
+        font-size: clamp(3.7rem, 7.3vw, 7.6rem);
+        font-weight: var(--display-weight, 500);
+        letter-spacing: var(--display-tracking, -0.045em);
+        line-height: 0.99;
+    }
+    h1 em {
+        font-family: var(--editorial-font);
+        font-size: 1.12em;
+        font-weight: var(--display-weight, 400);
+        letter-spacing: var(--display-tracking, -0.035em);
+    }
+    .catalogue-intro > p {
+        max-width: 46ch;
+        margin: 0 0 0.3rem;
+        color: var(--ink-soft);
+        font-family: var(--reading);
+        font-size: clamp(1.1875rem, 1.4vw, 1.375rem);
+        line-height: 1.65;
+    }
+    .catalogue-toolbar {
+        position: sticky;
+        z-index: 20;
+        top: 4.75rem;
+        background: var(--paper);
+        border-top: 1px solid var(--line-strong);
+        border-bottom: 1px solid var(--line-strong);
+    }
+    .toolbar-inner {
         display: flex;
         align-items: center;
-        gap: 0.8rem;
-        min-height: 3.25rem;
-        padding: 0 1rem;
-        border: 1px solid var(--line-strong);
-        background: var(--cream);
+        gap: 2rem;
+        min-height: 5.5rem;
     }
-
+    .search-box {
+        display: flex;
+        flex: 1;
+        align-items: center;
+        gap: 1rem;
+        min-width: 0;
+    }
     .search-box input {
         width: 100%;
+        padding: 0.8rem 0;
+        color: var(--ink);
         border: 0;
-        outline: 0;
         background: transparent;
-        font-family: var(--serif);
+        font-family: var(--sans);
         font-size: 1rem;
     }
-
-    .search-box input::placeholder {
-        color: var(--ink-soft);
+    .search-box input:focus {
+        outline-offset: 5px;
     }
-
+    .search-box input::-webkit-search-cancel-button {
+        display: none;
+    }
     .search-box button {
         display: grid;
         place-items: center;
-        padding: 0.3rem;
+        min-width: 2.5rem;
+        height: 2.5rem;
         border: 0;
         background: transparent;
-        cursor: pointer;
     }
-
-    .results {
-        padding-top: 2rem;
-        padding-bottom: clamp(6rem, 10vw, 10rem);
+    .result-count {
+        color: var(--ink-soft);
+        font-family: var(--sans);
+        font-size: 0.8rem;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
     }
-
-    .results-meta {
+    .view-switch {
         display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 2rem;
+        gap: 0.3rem;
+        padding-left: 2rem;
+        border-left: 1px solid var(--line);
     }
-
-    .results-meta p {
-        margin: 0;
-        color: var(--ink-soft);
-        font-family: var(--sans);
-        font-size: 0.62rem;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-    }
-
-    .results-meta strong {
-        color: var(--madder);
-        font-weight: 700;
-    }
-
-    .results-meta button {
-        padding: 0;
-        color: var(--ink-soft);
-        border: 0;
-        border-bottom: 1px solid currentColor;
-        background: transparent;
-        font-size: 0.7rem;
-        cursor: pointer;
-    }
-
-    .glossary-grid {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 1px;
-        border: 1px solid var(--line-strong);
-        background: var(--line-strong);
-    }
-
-    .entry-card {
-        min-width: 0;
-        background: var(--paper);
-        text-decoration: none;
-    }
-
-    .entry-card figure {
-        position: relative;
-        aspect-ratio: 1.15;
-        margin: 0;
-        overflow: hidden;
-        background: var(--paper-deep);
-    }
-
-    .entry-card.wide {
-        grid-column: span 2;
-    }
-
-    .entry-card.wide figure {
-        aspect-ratio: 2.3;
-    }
-
-    .entry-card img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        filter: saturate(0.82) contrast(0.96);
-        transition:
-            filter 500ms ease,
-            transform 600ms ease;
-    }
-
-    .entry-card:hover img {
-        filter: saturate(1) contrast(1);
-        transform: scale(1.035);
-    }
-
-    .entry-card-copy {
-        display: grid;
-        grid-template-columns: 2rem 1fr 1.5rem;
-        gap: 1rem;
-        min-height: 13rem;
-        padding: 1.2rem;
-        border-top: 1px solid var(--line-strong);
-    }
-
-    .entry-index {
-        color: var(--madder);
-        font-family: var(--sans);
-        font-size: 0.58rem;
-    }
-
-    .entry-card-copy h2 {
-        margin-bottom: 0.65rem;
-        font-family: var(--serif);
-        font-size: clamp(1.55rem, 2.7vw, 2.65rem);
-        font-weight: 400;
-        letter-spacing: -0.03em;
-        line-height: 1;
-    }
-
-    .entry-card-copy div > span {
-        display: block;
-        max-width: 30rem;
-        color: var(--ink-soft);
-        font-size: 0.74rem;
-        line-height: 1.45;
-    }
-
-    .entry-card :global(.entry-arrow) {
-        transition: transform 180ms ease;
-    }
-
-    .entry-card:hover :global(.entry-arrow) {
-        transform: translate(0.25rem, -0.25rem);
-    }
-
-    .empty-state {
+    .view-switch button {
         display: grid;
         place-items: center;
-        min-height: 30rem;
-        padding: 4rem 1rem;
-        border: 1px solid var(--line);
-        text-align: center;
+        width: 2.8rem;
+        height: 2.8rem;
+        color: var(--ink-soft);
+        border: 0;
+        border-radius: 50%;
+        background: transparent;
     }
-
-    .empty-state .button {
-        margin-top: 1rem;
-        cursor: pointer;
+    .view-switch button[aria-pressed="true"] {
+        color: var(--paper);
+        background: var(--ink);
     }
-
-    @media (max-width: 1000px) {
-        .glossary-grid {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-        }
+    .results {
+        padding-top: 3.5rem;
+        padding-bottom: clamp(5rem, 10vw, 10rem);
     }
-
-    @media (max-width: 650px) {
-        .glossary-controls {
+    .glossary-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        align-items: start;
+        column-gap: clamp(2rem, 5vw, 5rem);
+        row-gap: 4.5rem;
+        row-gap: 0;
+    }
+    .entry-card {
+        position: relative;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        min-width: 0;
+        text-decoration: none;
+        padding-bottom: 3.5rem;
+    }
+    .entry-card figure {
+        display: grid;
+        place-items: center;
+        grid-column: 1 / -1;
+        margin: 0 0 1.5rem;
+        padding: 0;
+        background: var(--paper-deep);
+        overflow: hidden;
+    }
+    .entry-card img {
+        width: 100%;
+        height: auto;
+        object-fit: contain;
+        transition: transform 650ms cubic-bezier(0.2, 0.7, 0.2, 1);
+    }
+    .entry-card:hover img {
+        transform: scale(1.045);
+    }
+    .entry-copy h2 {
+        margin: 0 0 1rem;
+        font-family: var(--display-font, var(--sans));
+        font-size: clamp(2rem, 3.3vw, 3.5rem);
+        font-weight: var(--display-weight, 450);
+        letter-spacing: var(--display-tracking, -0.035em);
+        line-height: 1.1;
+    }
+    .entry-copy p {
+        max-width: 47ch;
+        margin: 0;
+        color: var(--ink-soft);
+        font-family: var(--reading);
+        font-size: 1.1875rem;
+        line-height: 1.6;
+    }
+    .entry-arrow {
+        display: grid;
+        place-items: center;
+        width: 3.2rem;
+        height: 3.2rem;
+        margin-left: 1rem;
+        border: 1px solid var(--line-strong);
+        border-radius: 50%;
+        transition:
+            background 200ms,
+            color 200ms;
+    }
+    .entry-card:hover .entry-arrow {
+        color: var(--paper);
+        background: var(--ink);
+    }
+    .as-index {
+        display: block;
+    }
+    .as-index .entry-card {
+        grid-template-columns: 8rem minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 2rem;
+        margin: 0;
+        padding: 1.8rem 0;
+        border-bottom: 1px solid var(--line);
+        padding-bottom: 1.8rem;
+    }
+    .as-index .entry-card:first-child {
+        padding-top: 0;
+    }
+    .as-index .entry-card figure {
+        grid-column: 1;
+        width: 8rem;
+        aspect-ratio: 0.9;
+        margin: 0;
+        padding: 0.5rem;
+        height: 8rem;
+    }
+    .as-index .entry-copy {
+        display: grid;
+        grid-template-columns: minmax(0, 0.8fr) minmax(0, 1fr);
+        align-items: center;
+        gap: 2rem;
+    }
+    .as-index .entry-copy h2 {
+        margin: 0;
+        font-size: clamp(1.7rem, 2.6vw, 2.8rem);
+    }
+    .empty-state {
+        display: grid;
+        justify-items: center;
+        align-content: center;
+        gap: 1rem;
+        min-height: 22rem;
+    }
+    .empty-state p {
+        font-family: var(--editorial-font);
+        font-size: 2rem;
+    }
+    @media (max-width: 800px) {
+        .catalogue-intro {
             grid-template-columns: 1fr;
+            gap: 2rem;
         }
-
+        h1 {
+            font-size: 11vw;
+        }
+        .catalogue-intro > p {
+            max-width: 57ch;
+        }
+        .glossary-grid {
+            column-gap: 1.5rem;
+            row-gap: 0;
+        }
+        .entry-copy h2 {
+            font-size: 1.7rem;
+        }
+        .entry-arrow {
+            width: 2.5rem;
+            height: 2.5rem;
+            margin-left: 0.5rem;
+        }
+        .entry-copy p {
+            font-size: 1.125rem;
+        }
+        .as-index .entry-copy {
+            display: block;
+        }
+        .as-index .entry-copy h2 {
+            margin-bottom: 0.7rem;
+        }
+    }
+    @media (max-width: 560px) {
+        .catalogue-intro {
+            padding-top: 3rem;
+        }
+        h1 {
+            font-size: 14vw;
+        }
+        .catalogue-toolbar {
+            top: 4.8rem;
+        }
+        .toolbar-inner {
+            gap: 1rem;
+            min-height: 4.5rem;
+        }
         .search-box {
-            grid-column: auto;
+            gap: 0.6rem;
         }
-
+        .search-box input {
+            font-size: 1rem;
+            min-width: 0;
+        }
+        .result-count {
+            font-size: 0.75rem;
+        }
+        .view-switch {
+            gap: 0;
+            padding-left: 0.7rem;
+        }
+        .view-switch button {
+            width: 2.3rem;
+            height: 2.7rem;
+        }
         .glossary-grid {
             grid-template-columns: 1fr;
+            row-gap: 3.5rem;
+            row-gap: 0;
         }
-
-        .entry-card.wide {
-            grid-column: auto;
+        .entry-copy h2 {
+            font-size: 2rem;
         }
-
-        .entry-card.wide figure,
-        .entry-card figure {
-            aspect-ratio: 1.25;
+        .results {
+            padding-top: 2rem;
         }
-
-        .entry-card-copy {
-            min-height: 11rem;
+        .as-index .entry-card {
+            grid-template-columns: 4.5rem minmax(0, 1fr) auto;
+            gap: 0.8rem;
+            padding-bottom: 1.8rem;
+        }
+        .as-index .entry-card figure {
+            width: 4.5rem;
+            height: 8rem;
+        }
+        .as-index .entry-copy h2 {
+            font-size: 1.35rem;
+            margin: 0;
+        }
+        .as-index .entry-copy p {
+            display: none;
         }
     }
 </style>

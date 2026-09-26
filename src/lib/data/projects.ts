@@ -16,15 +16,11 @@ export const projectTools: ProjectTool[] = [
         slug: "trade-explorer",
         title: "Trade Data Explorer",
         eyebrow: "Trade Data Explorer",
-        description: "Filter, compare, map, inspect, and download trade records.",
+        description: "",
         href: "/explore/",
         action: "Explore the records",
-        creators: "Application created by the Dutch Textile Trade Project team",
-        instructions: [
-            "Filter by company, textile, route, date, or modifier.",
-            "Switch among charts, routes, and records.",
-            "Download filtered records as CSV.",
-        ],
+        creators: "",
+        instructions: [],
         notes: [],
         accent: "madder",
     },
@@ -63,7 +59,7 @@ export const projectTools: ProjectTool[] = [
         description:
             "Explore specific textiles in greater detail, like the quantities, total values, or per-piece values of imported or exported textiles over time or across geographies. Users can compare different types (modifiers) of a given textile.",
         href: "/values/",
-        action: "Open the comparison lab",
+        action: "Compare textiles",
         creators:
             "Application created by: Yifei (Bell) Luo, Alec Gong, DJ Poulin, and Will Holzman",
         instructions: [
@@ -84,7 +80,7 @@ export const projectTools: ProjectTool[] = [
         description:
             "Search the textile data set by a range of archival modifiers—including color, pattern, process, fiber, or quality and visualize this geographically and infographically. Identify specific textile names of interest based on modifiers and geography.",
         href: "/map/",
-        action: "Open the geography map",
+        action: "Open map",
         creators:
             "Application created by: Yifei (Bell) Luo, Nicholas Sliter, Xingze Wang, Ev Berger-Wolf, Camryn Kluetmeir, Jason Richenbacher",
         instructions: [
