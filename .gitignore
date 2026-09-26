@@ -50,3 +50,23 @@ rsconnect/
 
 # Personal files
 Personal/
+
+# SvelteKit / Node
+node_modules/
+.svelte-kit/
+build/
+.vite/
+
+# Local environment files
+.env
+.env.*
+!.env.example
+
+# Logs and editor files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+bun-error.log*
+.DS_Store
+Thumbs.db
