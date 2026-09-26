@@ -1,6 +1,6 @@
 <script lang="ts">
+    import { Plus } from "@lucide/svelte";
     import { projectTools } from "$lib/data/projects";
-
     let {
         active,
     }: {
@@ -10,124 +10,82 @@
             | "textiles-modifiers-and-values"
             | "swatch-search";
     } = $props();
-
-    const tools = [
-        projectTools.find((tool) => tool.slug === "trade-explorer"),
-        projectTools.find((tool) => tool.slug === "textile-geographies"),
-        projectTools.find((tool) => tool.slug === "textiles-modifiers-and-values"),
-        projectTools.find((tool) => tool.slug === "swatch-search"),
-    ].filter((tool): tool is NonNullable<typeof tool> => Boolean(tool));
-
-    const current = $derived(tools.find((tool) => tool.slug === active) ?? tools[0]!);
+    const current = $derived(projectTools.find((tool) => tool.slug === active) ?? projectTools[0]!);
 </script>
 
 <header class="research-header page-shell">
     <div class="research-title">
-        <p class="eyebrow">Data Visualization</p>
-        <h1>{current.eyebrow}</h1>
+        <h1>{current.title}</h1>
+        {#if current.description}
+            <details class="research-about">
+                <summary>About <Plus size={16} strokeWidth={1.5} aria-hidden="true" /></summary>
+                <p>{current.description}</p>
+            </details>
+        {/if}
     </div>
-    <p class="research-description">{current.description}</p>
-    <nav class="research-tabs" aria-label="Data visualization applications">
-        {#each tools as tool}
-            <a
-                class:active={tool.slug === active}
-                aria-current={tool.slug === active ? "page" : undefined}
-                href={tool.href}
-            >
-                {tool.eyebrow}
-            </a>
-        {/each}
-    </nav>
 </header>
 
 <style>
     .research-header {
+        padding-top: clamp(2.5rem, 5vw, 4.5rem);
+    }
+    .research-title {
         display: grid;
-        grid-template-columns: minmax(0, 1.25fr) minmax(20rem, 0.75fr);
-        gap: clamp(2.5rem, 7vw, 8rem);
+        grid-template-columns: minmax(0, 1fr) auto;
         align-items: end;
-        padding-top: clamp(2.8rem, 6vw, 5rem);
-        padding-bottom: 0;
+        gap: 2rem;
     }
-
-    .research-title h1 {
-        max-width: 12ch;
+    h1 {
+        max-width: 25ch;
         margin: 0;
-        font-family: var(--serif);
-        font-size: clamp(3rem, 5.7vw, 5.9rem);
-        font-weight: 400;
-        letter-spacing: -0.057em;
-        line-height: 0.9;
+        font-family: var(--display-font, var(--sans));
+        font-size: clamp(2.5rem, 5vw, 5.2rem);
+        font-weight: var(--display-weight, 500);
+        letter-spacing: var(--display-tracking, -0.045em);
+        line-height: 1.05;
     }
-
-    .research-description {
-        max-width: 36rem;
-        margin: 0 0 0.25rem;
-        color: var(--ink-soft);
-        font-family: var(--reading);
-        font-size: clamp(0.96rem, 1.15vw, 1.08rem);
-        line-height: 1.62;
+    .research-about {
+        max-width: 34rem;
     }
-
-    .research-tabs {
-        grid-column: 1 / -1;
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        margin-top: clamp(1.8rem, 3.5vw, 3rem);
-        border: 1px solid var(--line-strong);
-        border-bottom: 0;
-    }
-
-    .research-tabs a {
+    .research-about summary {
         display: flex;
         align-items: center;
-        min-height: 3.7rem;
-        padding: 0.85rem 1.15rem;
+        justify-content: flex-end;
+        gap: 1rem;
+        min-height: 3rem;
+        font-family: var(--sans);
+        font-size: 0.875rem;
+        list-style: none;
+    }
+    .research-about summary::-webkit-details-marker {
+        display: none;
+    }
+    .research-about summary :global(svg) {
+        transition: transform 180ms ease;
+    }
+    .research-about[open] summary :global(svg) {
+        transform: rotate(45deg);
+    }
+    .research-about[open] {
+        grid-column: 1 / -1;
+    }
+    .research-about[open] summary {
+        justify-content: flex-start;
+    }
+    .research-about p {
+        max-width: 65ch;
+        margin: 0.4rem 0 0;
         color: var(--ink-soft);
-        border-left: 1px solid var(--line-strong);
-        font-size: 0.84rem;
-        font-weight: 650;
-        line-height: 1.25;
-        text-decoration: none;
+        font-family: var(--reading);
+        font-size: clamp(1.1875rem, 1.5vw, 1.375rem);
+        line-height: 1.65;
     }
-
-    .research-tabs a:first-child {
-        border-left: 0;
-    }
-
-    .research-tabs a:hover {
-        color: var(--ink);
-        background: var(--paper-deep);
-    }
-
-    .research-tabs a.active {
-        color: var(--paper);
-        background: var(--ink);
-    }
-
-    @media (max-width: 760px) {
-        .research-header {
-            grid-template-columns: 1fr;
-            align-items: start;
+    @media (max-width: 680px) {
+        .research-title {
+            gap: 1rem;
         }
-
-        .research-description {
-            max-width: 42rem;
-        }
-
-        .research-tabs {
-            grid-column: 1;
-            grid-template-columns: 1fr;
-        }
-
-        .research-tabs a {
-            min-height: 3.7rem;
-            border-top: 1px solid var(--line-strong);
-            border-left: 0;
-        }
-
-        .research-tabs a:first-child {
-            border-top: 0;
+        h1 {
+            font-size: clamp(2.3rem, 8.5vw, 4rem);
         }
     }
 </style>

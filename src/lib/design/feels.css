@@ -1,0 +1,807 @@
+/* One content tree; recipes change presentation without resetting application state. */
+:root {
+    --editorial-font: var(--serif);
+    --inverse-surface: #171711;
+    --inverse-ink: #f4efe5;
+    --inverse-muted: #c3c2b8;
+    --inverse-line: #66665d;
+    --accent-fill: #df3e26;
+    --mark-filter: none;
+    --mark-filter-inverted: invert(1);
+    --collection-columns: 2;
+    --archive-columns: 2;
+    --collection-gap: clamp(1.5rem, 3vw, 3.5rem);
+}
+html[data-feel="gallery"] {
+    color-scheme: light;
+    --paper: #ffffff;
+    --paper-deep: #f0f1f3;
+    --ink: #111111;
+    --ink-soft: #515155;
+    --line: #11111135;
+    --line-strong: #11111180;
+    --madder: #1744d4;
+    --madder-dark: #1744d4;
+    --accent-fill: #1744d4;
+    --indigo: #1744d4;
+    --indigo-deep: #122b77;
+    --saffron: #9daffa;
+    --cream: #ffffff;
+    --reading: var(--sans);
+    --editorial-font: var(--sans);
+    --display-font: var(--sans);
+    --display-weight: 650;
+    --display-tracking: -0.04em;
+    --text-body: clamp(1.0625rem, 1.25vw, 1.1875rem);
+    --reading-width: 65ch;
+    --max-width: 100rem;
+    --page-pad: clamp(1.25rem, 3.4vw, 4rem);
+    --collection-columns: 3;
+    --archive-columns: 3;
+    --collection-gap: clamp(1.25rem, 2.2vw, 2.5rem);
+}
+html[data-feel="immersive"] {
+    color-scheme: dark;
+    --paper: #191c19;
+    --paper-deep: #252924;
+    --ink: #eeede6;
+    --ink-soft: #b8bcb4;
+    --line: #eeede630;
+    --line-strong: #eeede665;
+    --madder: #edbc78;
+    --madder-dark: #edbc78;
+    --accent-fill: #edbc78;
+    --indigo: #a4bec4;
+    --indigo-deep: #122f38;
+    --saffron: #edbc78;
+    --cream: #252924;
+    --inverse-surface: #10130f;
+    --inverse-ink: #eeede6;
+    --inverse-muted: #b8bcb4;
+    --inverse-line: #eeede640;
+    --display-font: var(--serif);
+    --display-weight: 400;
+    --display-tracking: -0.025em;
+    --text-body: clamp(1.1875rem, 1.5vw, 1.5rem);
+    --reading-width: 58ch;
+    --max-width: 100rem;
+    --page-pad: clamp(1.25rem, 5.4vw, 6rem);
+    --collection-gap: clamp(2rem, 5vw, 5rem);
+    --mark-filter: invert(1);
+    --mark-filter-inverted: none;
+}
+/* Gallery: typography and clear, closely connected catalogue rows. */
+html[data-feel="gallery"] .site-header {
+    background: var(--paper);
+    border-bottom-color: var(--ink);
+    backdrop-filter: none;
+}
+html[data-feel="gallery"] .desktop-nav a {
+    font-weight: 650;
+}
+html[data-feel="gallery"] .catalogue-intro h1,
+html[data-feel="gallery"] .page-intro h1 {
+    text-transform: uppercase;
+}
+html[data-feel="gallery"] .catalogue-intro h1 em,
+html[data-feel="gallery"] .section-heading h2 em {
+    font-style: normal;
+    font-size: 1em;
+    font-weight: 650;
+}
+html[data-feel="gallery"] .entry-copy h2 {
+    font-size: clamp(1.6rem, 2.3vw, 2.4rem);
+    font-weight: 600;
+}
+html[data-feel="gallery"] .entry-copy p {
+    font-size: 1rem;
+}
+html[data-feel="gallery"] .textile-card:nth-child(even) {
+    margin-top: 0;
+}
+html[data-feel="gallery"] .textile-card figure {
+    aspect-ratio: 1;
+}
+html[data-feel="gallery"] .textile-card img {
+    object-fit: contain;
+}
+html[data-feel="gallery"] .textile-card h3 {
+    font-size: clamp(1.25rem, 1.8vw, 1.8rem);
+    font-weight: 600;
+}
+html[data-feel="gallery"] .round-arrow,
+html[data-feel="gallery"] .tool-arrow,
+html[data-feel="gallery"] .entry-arrow {
+    border-radius: 0;
+}
+html[data-feel="gallery"] .entry-title h1 {
+    font-family: var(--sans);
+    font-weight: 650;
+    font-size: clamp(3.6rem, 7.5vw, 8rem);
+    letter-spacing: -0.04em;
+}
+html[data-feel="gallery"] .definition-copy blockquote {
+    font-size: clamp(1.6rem, 2.5vw, 2.8rem);
+}
+html[data-feel="gallery"] .entry-hero {
+    min-height: 55svh;
+}
+/* Immersive: an artwork-sized opening and a quieter, wider exhibition rhythm. */
+html[data-feel="immersive"] .site-header {
+    background: var(--paper);
+}
+html[data-feel="immersive"] .project-hero,
+html[data-feel="immersive"] .modifier-note {
+    color: var(--inverse-ink);
+}
+html[data-feel="immersive"] .project-hero.madder {
+    background: #4f3027;
+}
+html[data-feel="immersive"] .project-hero.saffron {
+    background: #383429;
+}
+html[data-feel="immersive"] .project-hero.saffron > div > p {
+    color: var(--inverse-muted);
+}
+html[data-feel="immersive"] .entry-hero {
+    grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr);
+    min-height: 82svh;
+}
+html[data-feel="immersive"] .entry-copy h2 {
+    font-family: var(--serif);
+    font-size: clamp(2rem, 3.8vw, 4.5rem);
+}
+html[data-feel="immersive"] .catalogue-intro h1 em,
+html[data-feel="immersive"] .section-heading h2 em {
+    font-size: 1em;
+}
+html[data-feel="immersive"] .featured-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 3rem;
+}
+html[data-feel="immersive"] .textile-card figure {
+    aspect-ratio: 1.05;
+}
+html[data-feel="immersive"] .textile-card:nth-child(even) {
+    margin-top: 8rem;
+}
+html[data-feel="immersive"] .glossary-section {
+    padding-top: clamp(4rem, 8vw, 9rem);
+}
+@media (min-width: 761px) {
+    html[data-feel="gallery"] .opening {
+        display: grid;
+        grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+        align-items: center;
+        padding-top: 2rem;
+    }
+    html[data-feel="gallery"] .masthead {
+        width: 100%;
+        padding-right: 2rem;
+        padding-bottom: 5rem;
+    }
+    html[data-feel="gallery"] .masthead h1 {
+        display: block;
+    }
+    html[data-feel="gallery"] .title-dutch {
+        font-family: var(--sans);
+        font-size: clamp(2.3rem, 4vw, 4.4rem);
+        font-style: normal;
+        font-weight: 650;
+        letter-spacing: -0.04em;
+    }
+    html[data-feel="gallery"] .title-trade {
+        font-size: clamp(4rem, 6.3vw, 7rem);
+        line-height: 0.95;
+        margin: 1rem 0;
+        font-weight: 650;
+        text-transform: none;
+    }
+    html[data-feel="gallery"] .title-project {
+        padding: 0;
+        font-family: var(--sans);
+        font-size: clamp(2.3rem, 4vw, 4.4rem);
+        font-style: normal;
+        font-weight: 650;
+        letter-spacing: -0.04em;
+    }
+    html[data-feel="gallery"] .opening-jump {
+        top: auto;
+        bottom: 0;
+        left: var(--page-pad);
+        right: auto;
+        border-radius: 0;
+        width: 3rem;
+        height: 3rem;
+    }
+    html[data-feel="gallery"] .cover {
+        margin: 0 var(--page-pad) 0 0;
+        height: min(70svh, 52rem);
+        min-height: 30rem;
+        aspect-ratio: auto;
+    }
+    html[data-feel="gallery"] .introduction {
+        grid-column: 1 / -1;
+    }
+    html[data-feel="gallery"] .glossary-grid:not(.as-index) {
+        grid-template-columns: repeat(var(--collection-columns), minmax(0, 1fr));
+    }
+    html[data-feel="gallery"] .archive-grid {
+        grid-template-columns: repeat(var(--archive-columns), minmax(0, 1fr));
+        column-gap: var(--collection-gap);
+    }
+    html[data-feel="gallery"] .section-heading {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+html[data-feel="immersive"] .opening {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    padding-top: 0;
+}
+html[data-feel="immersive"] .masthead {
+    grid-area: 1 / 1;
+    align-self: end;
+    z-index: 1;
+    width: 100%;
+    padding-top: 5rem;
+    padding-bottom: 4rem;
+    color: #fbf8f1;
+    pointer-events: none;
+}
+html[data-feel="immersive"] .masthead h1 {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+html[data-feel="immersive"] .title-dutch {
+    font-size: clamp(2.5rem, 5vw, 6rem);
+    font-family: var(--sans);
+    font-style: normal;
+    font-weight: 450;
+    line-height: 1.1;
+}
+html[data-feel="immersive"] .title-trade {
+    font-size: clamp(3.2rem, 9.6vw, 10.5rem);
+    font-family: var(--serif);
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: -0.045em;
+    line-height: 1;
+}
+html[data-feel="immersive"] .title-project {
+    padding: 0;
+    font-size: clamp(2.5rem, 5vw, 6rem);
+    line-height: 1.1;
+}
+html[data-feel="immersive"] .opening-jump {
+    pointer-events: auto;
+    top: auto;
+    bottom: 4rem;
+    color: #fbf8f1;
+    border-color: #fbf8f170;
+}
+html[data-feel="immersive"] .cover {
+    grid-area: 1 / 1;
+    width: 100%;
+    margin: 0;
+    height: calc(100svh - 4.75rem);
+    min-height: 36rem;
+    max-height: 72rem;
+    aspect-ratio: auto;
+}
+html[data-feel="immersive"] .cover::after {
+    position: absolute;
+    inset: 0;
+    content: "";
+    background: linear-gradient(180deg, #0001 20%, #000b 100%);
+    pointer-events: none;
+}
+html[data-feel="immersive"] .cover-link {
+    top: 1.5rem;
+    bottom: auto;
+    right: var(--page-pad);
+    z-index: 1;
+    background: #191c19e8;
+    color: #eeede6;
+}
+html[data-feel="immersive"] .introduction {
+    grid-column: 1;
+    grid-row: 2;
+    padding-top: clamp(4rem, 8vw, 9rem);
+    padding-bottom: clamp(4rem, 8vw, 9rem);
+}
+@media (max-width: 1100px) and (min-width: 761px) {
+    html[data-feel="gallery"] {
+        --archive-columns: 2;
+    }
+    html[data-feel="gallery"] .catalogue-intro {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+}
+@media (max-width: 760px) {
+    html[data-feel="gallery"] .title-dutch,
+    html[data-feel="gallery"] .title-project {
+        font-family: var(--sans);
+        font-style: normal;
+        font-weight: 650;
+    }
+    html[data-feel="gallery"] .title-trade {
+        font-weight: 650;
+    }
+    html[data-feel="gallery"] .cover {
+        aspect-ratio: 1.2;
+    }
+    html[data-feel="gallery"] .entry-title h1 {
+        font-size: clamp(3.5rem, 13vw, 6rem);
+    }
+    html[data-feel="immersive"] .masthead {
+        padding-bottom: 2.5rem;
+    }
+    html[data-feel="immersive"] .title-trade {
+        font-size: 12vw;
+    }
+    html[data-feel="immersive"] .cover {
+        min-height: 32rem;
+        max-height: 54rem;
+    }
+    html[data-feel="immersive"] .cover-link {
+        top: 1rem;
+    }
+    html[data-feel="immersive"] .featured-grid {
+        gap: 1rem;
+    }
+    html[data-feel="immersive"] .textile-card:nth-child(even) {
+        margin-top: 3rem;
+    }
+    html[data-feel="immersive"] .entry-hero {
+        grid-template-columns: 1fr;
+        min-height: 0;
+    }
+}
+
+/* Gallery: catalogue hierarchy continues into essays and collection records. */
+html[data-feel="gallery"] .evidence-heading h2,
+html[data-feel="gallery"] .gallery-heading h3 {
+    font: 650 clamp(2rem, 3.5vw, 3.5rem)/1.08 var(--sans);
+    letter-spacing: -0.04em;
+    text-transform: uppercase;
+}
+html[data-feel="gallery"] .story-copy h3 {
+    font: 600 clamp(1.5rem, 2.1vw, 2.3rem)/1.15 var(--sans);
+}
+html[data-feel="gallery"] .stories {
+    gap: 4rem;
+}
+html[data-feel="gallery"] .story {
+    padding-top: 2rem;
+    border-top: 1px solid var(--ink);
+}
+html[data-feel="gallery"] .story-copy {
+    padding-top: 0;
+    border-top: 0;
+}
+html[data-feel="gallery"] .section-index h2,
+html[data-feel="gallery"] .names-panel h2 {
+    color: var(--ink);
+    font-weight: 650;
+    text-transform: uppercase;
+}
+html[data-feel="gallery"] .gallery-heading h3 span {
+    color: var(--paper);
+    background: var(--madder);
+    padding: 0.15em 0.3em;
+}
+@media (min-width: 901px) {
+    html[data-feel="gallery"] .story,
+    html[data-feel="gallery"] .story:nth-child(even) {
+        grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+        gap: 3rem;
+    }
+    html[data-feel="gallery"] .story:nth-child(even) figure {
+        grid-column: 1;
+    }
+    html[data-feel="gallery"] .story:nth-child(even) .story-copy {
+        grid-column: 2;
+    }
+    html[data-feel="gallery"] .media-gallery {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        column-gap: 1.5rem;
+    }
+}
+/* Immersive: each evidence image occupies its own wall, with notes underneath. */
+html[data-feel="immersive"] .story,
+html[data-feel="immersive"] .story:nth-child(even) {
+    display: block;
+}
+html[data-feel="immersive"] .story figure {
+    width: min(100%, calc(78svh * var(--image-ratio)));
+    margin-inline: auto;
+}
+html[data-feel="immersive"] .story-copy {
+    position: static;
+    margin-top: 2rem;
+    padding-top: 2rem;
+}
+html[data-feel="immersive"] .story-copy h3 {
+    max-width: 24ch;
+}
+html[data-feel="immersive"] .gallery-heading {
+    margin-top: clamp(5rem, 10vw, 10rem);
+}
+@media (min-width: 901px) {
+    html[data-feel="immersive"] .story-copy {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        column-gap: clamp(3rem, 8vw, 9rem);
+        align-items: start;
+    }
+    html[data-feel="immersive"] .story-copy > :not(ol) {
+        grid-column: 1;
+    }
+    html[data-feel="immersive"] .story-copy ol {
+        grid-column: 2;
+        grid-row: 1 / span 5;
+        margin: 0;
+    }
+    html[data-feel="immersive"] .media-gallery {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        column-gap: clamp(3rem, 6vw, 6rem);
+    }
+}
+/* Folio: museum catalogue hierarchy, with readable sans labels and serif display type. */
+html[data-feel="folio"] {
+    color-scheme: light;
+    --paper: #f4dcd6;
+    --paper-deep: #eac7c0;
+    --ink: #50202e;
+    --ink-soft: #76505a;
+    --line: #69263840;
+    --line-strong: #69263880;
+    --madder: #8b2846;
+    --madder-dark: #692638;
+    --accent-fill: #8b2846;
+    --indigo: #416269;
+    --indigo-deep: #253e43;
+    --saffron: #efbca5;
+    --cream: #fff8ef;
+    --inverse-surface: #50202e;
+    --inverse-ink: #fff8ef;
+    --inverse-muted: #e6c9c2;
+    --inverse-line: #e6c9c270;
+    --editorial-font: var(--serif);
+    --display-font: var(--serif);
+    --display-weight: 400;
+    --display-tracking: -0.045em;
+    --reading: var(--serif);
+    --text-label: 1rem;
+    --text-small: 0.9375rem;
+    --type-label: 500 var(--text-label)/1.45 var(--sans);
+    --type-section: 400 clamp(1.6rem, 2.5vw, 2.2rem)/1.15 var(--serif);
+    --text-body: clamp(1.1875rem, 1.45vw, 1.375rem);
+    --reading-width: 60ch;
+    --max-width: 100rem;
+    --page-pad: clamp(1.25rem, 4vw, 4.5rem);
+    --collection-gap: clamp(1.5rem, 3vw, 3rem);
+}
+html[data-feel="folio"] .site-header {
+    border-bottom: 2px solid var(--ink);
+    background: var(--paper);
+    backdrop-filter: none;
+}
+html[data-feel="folio"] .desktop-nav a,
+html[data-feel="folio"] .section-index h2,
+html[data-feel="folio"] .section-index p,
+html[data-feel="folio"] .names-panel h2,
+html[data-feel="folio"] .footnotes h3,
+html[data-feel="folio"] .footer-label,
+html[data-feel="folio"] .result-count,
+html[data-feel="folio"] .entry-data-link,
+html[data-feel="folio"] .story-copy > a,
+html[data-feel="folio"] .research-about summary {
+    font: var(--type-label);
+    letter-spacing: 0;
+    text-transform: none;
+}
+html[data-feel="folio"] .story-meta,
+html[data-feel="folio"] .entry-breadcrumb,
+html[data-feel="folio"] .media-gallery article > div span {
+    font: 400 var(--text-small)/1.55 var(--sans);
+}
+html[data-feel="folio"] .footer-links a,
+html[data-feel="folio"] .mobile-meta a {
+    font-size: var(--text-small);
+}
+html[data-feel="folio"] .footer-bottom {
+    font-size: 0.875rem;
+}
+html[data-feel="folio"] .media-gallery button span {
+    font-size: var(--text-small);
+}
+html[data-feel="folio"] .page-intro,
+html[data-feel="folio"] .catalogue-intro {
+    border-bottom: 2px solid var(--ink);
+}
+html[data-feel="folio"] .page-intro h1,
+html[data-feel="folio"] .catalogue-intro h1,
+html[data-feel="folio"] .entry-title h1,
+html[data-feel="folio"] .research-title h1,
+html[data-feel="folio"] .evidence-heading h2,
+html[data-feel="folio"] .gallery-heading h3 {
+    font-style: italic;
+    font-weight: 400;
+}
+html[data-feel="folio"] .catalogue-intro h1 em,
+html[data-feel="folio"] .section-heading h2 em {
+    font-size: 1em;
+}
+html[data-feel="folio"] .catalogue-toolbar {
+    background: var(--cream);
+    border-top: 0;
+    border-bottom: 2px solid var(--ink);
+}
+html[data-feel="folio"] .entry-hero {
+    border-bottom: 2px solid var(--ink);
+}
+html[data-feel="folio"] .entry-hero > figure,
+html[data-feel="folio"] .reference-card figure {
+    padding: clamp(1rem, 2.2vw, 2.5rem);
+    background: var(--cream);
+    border: 1px solid var(--ink);
+}
+html[data-feel="folio"] .definition-section {
+    border-top: 0;
+}
+html[data-feel="folio"] .section-index h2 {
+    padding-top: 0.65rem;
+    border-top: 2px solid var(--ink);
+}
+html[data-feel="folio"] .essay-section {
+    background: var(--cream);
+    border-block: 1px solid var(--ink);
+}
+html[data-feel="folio"] .original-copy h2 {
+    font-style: italic;
+    border-top-color: var(--ink);
+}
+html[data-feel="folio"] .story-copy {
+    border-top: 2px solid var(--ink);
+}
+html[data-feel="folio"] .story-copy h3 {
+    font-style: italic;
+}
+html[data-feel="folio"] .story figure {
+    /* An external outline preserves the original annotation coordinates. */
+    outline: 1px solid var(--ink);
+    outline-offset: 0.65rem;
+}
+html[data-feel="folio"] .gallery-heading {
+    border-top: 2px solid var(--ink);
+}
+html[data-feel="folio"] .gallery-heading h3 {
+    justify-content: space-between;
+}
+html[data-feel="folio"] .gallery-heading h3 span {
+    color: var(--ink);
+    font-family: var(--serif);
+    font-size: 1em;
+    font-style: italic;
+    font-weight: 400;
+}
+html[data-feel="folio"] .media-gallery article {
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--ink);
+}
+html[data-feel="folio"] .glossary-grid:not(.as-index) .entry-card {
+    margin-bottom: 2.5rem;
+    padding: clamp(1rem, 2vw, 2rem);
+    border: 1px solid var(--ink);
+    background: var(--cream);
+}
+html[data-feel="folio"] .entry-copy h2 {
+    font-style: italic;
+}
+html[data-feel="folio"] .featured-grid {
+    gap: 0;
+    border-top: 2px solid var(--ink);
+    border-bottom: 2px solid var(--ink);
+}
+html[data-feel="folio"] .textile-card,
+html[data-feel="folio"] .textile-card:nth-child(even) {
+    margin-top: 0;
+    padding: 1.5rem;
+    border-left: 1px solid var(--ink);
+}
+html[data-feel="folio"] .textile-card:last-child {
+    border-right: 1px solid var(--ink);
+}
+html[data-feel="folio"] .textile-card figure {
+    aspect-ratio: 0.85;
+}
+html[data-feel="folio"] .textile-card h3 {
+    font-style: italic;
+}
+html[data-feel="folio"] .tools-section,
+html[data-feel="folio"] .data-section {
+    color: var(--inverse-ink);
+    background: var(--inverse-surface);
+}
+html[data-feel="folio"] .opening {
+    padding: 0;
+}
+html[data-feel="folio"] .masthead h1 {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+html[data-feel="folio"] .title-dutch,
+html[data-feel="folio"] .title-trade,
+html[data-feel="folio"] .title-project {
+    padding: 0;
+    margin: 0;
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: -0.06em;
+    line-height: 0.9;
+    animation: none;
+}
+html[data-feel="folio"] .title-dutch,
+html[data-feel="folio"] .title-project {
+    font-size: clamp(3.25rem, 5.3vw, 6rem);
+}
+html[data-feel="folio"] .title-trade {
+    margin: 0.25em 0;
+    font-size: clamp(5rem, 8.5vw, 10rem);
+}
+html[data-feel="folio"] .masthead {
+    padding-block: 3rem;
+}
+html[data-feel="folio"] .opening-jump {
+    position: static;
+    margin-top: 2rem;
+    width: 3rem;
+    height: 3rem;
+    border-color: var(--ink);
+}
+html[data-feel="folio"] .cover {
+    border: 1px solid var(--ink);
+    background: var(--cream);
+}
+html[data-feel="folio"] .cover > img {
+    object-fit: contain;
+}
+html[data-feel="folio"] .cover-link {
+    background: var(--cream);
+    border: 1px solid var(--ink);
+}
+html[data-feel="folio"] .introduction {
+    border-block: 2px solid var(--ink);
+}
+@media (min-width: 901px) {
+    html[data-feel="folio"] .opening {
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+    }
+    html[data-feel="folio"] .masthead {
+        grid-column: 2;
+        grid-row: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 3rem var(--page-pad) 3rem 3rem;
+        border-left: 2px solid var(--ink);
+    }
+    html[data-feel="folio"] .cover {
+        grid-column: 1;
+        grid-row: 1;
+        align-self: center;
+        margin: 3rem;
+        height: min(70svh, 48rem);
+        min-height: 32rem;
+        padding: 1.5rem;
+        aspect-ratio: auto;
+    }
+    html[data-feel="folio"] .introduction {
+        grid-column: 1 / -1;
+    }
+    html[data-feel="folio"] .entry-hero {
+        grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+    }
+    html[data-feel="folio"] .entry-title {
+        grid-column: 2;
+        grid-row: 1;
+        padding-left: 2.5rem;
+        border-left: 2px solid var(--ink);
+    }
+    html[data-feel="folio"] .entry-title h1 {
+        font-size: clamp(4rem, 7.8vw, 9rem);
+    }
+    html[data-feel="folio"] .entry-hero > figure {
+        grid-column: 1;
+        grid-row: 1;
+    }
+    html[data-feel="folio"] .definition-section,
+    html[data-feel="folio"] .essay-grid {
+        grid-template-columns: minmax(6rem, 0.35fr) minmax(0, 1.4fr) minmax(12rem, 0.65fr);
+    }
+    html[data-feel="folio"] .media-gallery {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        column-gap: 3rem;
+    }
+    html[data-feel="folio"] .glossary-grid:not(.as-index) {
+        column-gap: 2rem;
+    }
+}
+@media (max-width: 900px) {
+    html[data-feel="folio"] .masthead h1 {
+        display: block;
+    }
+    html[data-feel="folio"] .title-trade {
+        font-size: clamp(3.5rem, 12vw, 7rem);
+    }
+    html[data-feel="folio"] .title-dutch,
+    html[data-feel="folio"] .title-project {
+        font-size: clamp(2.75rem, 8vw, 4.5rem);
+    }
+    html[data-feel="folio"] .cover {
+        margin: 0 var(--page-pad) 2.5rem;
+        aspect-ratio: 1.5;
+    }
+}
+@media (max-width: 600px) {
+    html[data-feel="folio"] .textile-card,
+    html[data-feel="folio"] .textile-card:nth-child(even) {
+        padding: 0.8rem;
+    }
+    html[data-feel="folio"] .story figure {
+        outline-offset: 0.35rem;
+    }
+}
+
+/* Keep navigation readable by opening the menu before the full row becomes cramped. */
+@media (max-width: 1050px) {
+    html[data-feel="folio"] .desktop-actions {
+        display: none;
+    }
+    html[data-feel="folio"] .mobile-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+    html[data-feel="folio"] .mobile-home {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        min-height: 2.8rem;
+        padding: 0.5rem;
+        font: var(--type-label);
+        text-decoration: none;
+    }
+    html[data-feel="folio"] .menu-button,
+    html[data-feel="folio"] .mobile-nav {
+        display: grid;
+    }
+    html[data-feel="folio"] .mobile-nav > a {
+        font: 500 1.25rem/1.3 var(--sans);
+        padding: 0.85rem 0;
+    }
+    html[data-feel="folio"] .mobile-nav .feel-trigger {
+        width: 100%;
+        justify-content: flex-start;
+        margin-top: 1rem;
+        min-height: 3rem;
+    }
+    html[data-feel="folio"] .mobile-nav .feel-trigger strong {
+        display: block;
+        margin-left: auto;
+    }
+    html[data-feel="folio"] .mobile-nav .feel-panel {
+        position: static;
+        width: 100%;
+        margin-top: 0.5rem;
+        box-shadow: none;
+    }
+}

@@ -106,5 +106,6 @@ export const archiveOptions = {
     colors: uniqueValues(archiveItems.flatMap((item) => splitValues(item.primaryColor))),
     patterns: uniqueValues(archiveItems.flatMap((item) => splitValues(item.pattern))),
     processes: uniqueValues(archiveItems.flatMap((item) => splitValues(item.process))),
+    weaves: uniqueValues(archiveItems.flatMap((item) => splitValues(item.weave))),
     fibers: uniqueValues(archiveItems.flatMap((item) => splitValues(item.fiber))),
 };

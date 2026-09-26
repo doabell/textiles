@@ -1,4 +1,8 @@
 <script lang="ts">
+    import MultiSelect from "$lib/components/MultiSelect.svelte";
+    import ChartDownload from "$lib/components/ChartDownload.svelte";
+    import { downloadBlob, downloadChart, exportFilename } from "$lib/utils/download";
+
     import { ArrowDownToLine, BarChart3, Check, Database, RotateCcw, Scale } from "@lucide/svelte";
     import { onMount } from "svelte";
     import type { TradeRecord } from "$lib/server/trade";
@@ -17,6 +21,9 @@
     type ModifierField =
         | "company"
         | "color"
+        | "inferredColor"
+        | "geography"
+        | "other"
         | "pattern"
         | "process"
         | "fiber"
@@ -29,6 +36,9 @@
     const modifierFields: { value: ModifierField; label: string }[] = [
         { value: "company", label: "Company network" },
         { value: "color", label: "Archival color" },
+        { value: "inferredColor", label: "Inferred color" },
+        { value: "geography", label: "Archival geography" },
+        { value: "other", label: "Other" },
         { value: "pattern", label: "Pattern" },
         { value: "process", label: "Process" },
         { value: "fiber", label: "Fiber" },
@@ -37,29 +47,36 @@
         { value: "destination", label: "Destination region" },
     ];
 
-    let textile = $state("");
+    let textile = $state<string[]>([]);
     let yearFrom = $state(firstYear);
     let yearTo = $state(lastYear);
     let metric = $state<Metric>("value");
     let dimension = $state<Dimension>("year");
-    let scale = $state<"cohort" | "absolute">("cohort");
+    let scale = $state<"cohort" | "absolute">("absolute");
     let unit = $state("");
     let fieldA = $state<ModifierField>("company");
-    let valueA = $state("VOC");
+    let valueA = $state<string[]>(["VOC"]);
     let fieldB = $state<ModifierField>("company");
-    let valueB = $state("WIC");
+    let valueB = $state<string[]>(["WIC"]);
     let downloadReady = $state(false);
+    let controlsOpen = $state(true);
 
     onMount(() => {
-        const requestedTextile = new URL(window.location.href).searchParams.get("textile");
-        if (requestedTextile) textile = requestedTextile;
+        controlsOpen = !window.matchMedia("(max-width: 900px)").matches;
+        const params = new URL(window.location.href).searchParams;
+        const requestedTextile = params.get("textile") ?? params.get("name");
+        if (requestedTextile)
+            textile = params.getAll("textile").length
+                ? params.getAll("textile")
+                : [requestedTextile];
     });
 
     const normalize = (value: string) => value.toLocaleLowerCase("en").trim();
     const baseRecords = $derived.by(() =>
         data.records.filter(
             (record) =>
-                (!textile || normalize(record.textile).includes(normalize(textile))) &&
+                (!textile.length ||
+                    textile.some((value) => normalize(record.textile) === normalize(value))) &&
                 (record.year === null || (record.year >= yearFrom && record.year <= yearTo)),
         ),
     );
@@ -67,8 +84,10 @@
     const unitOptions = $derived.by(() => {
         const counts = new Map<string, number>();
         for (const record of baseRecords) {
-            if (record.unit && record.quantity !== null) {
-                counts.set(record.unit, (counts.get(record.unit) ?? 0) + 1);
+            const recordUnit = metric === "pricePerUnit" ? record.priceUnit : record.unit;
+            const amount = metric === "pricePerUnit" ? record.pricePerUnit : record.quantity;
+            if (recordUnit && amount !== null) {
+                counts.set(recordUnit, (counts.get(recordUnit) ?? 0) + 1);
             }
         }
         return [...counts]
@@ -98,32 +117,41 @@
     $effect(() => {
         const optionsA = modifierOptions(fieldA);
         const optionsB = modifierOptions(fieldB);
-        if (valueA && !optionsA.includes(valueA)) valueA = "";
-        if (valueB && !optionsB.includes(valueB)) valueB = "";
+        if (valueA.some((value) => !optionsA.includes(value)))
+            valueA = valueA.filter((value) => optionsA.includes(value));
+        if (valueB.some((value) => !optionsB.includes(value)))
+            valueB = valueB.filter((value) => optionsB.includes(value));
         if (unit && !unitOptions.some((option) => option.name === unit)) unit = "";
     });
 
-    function matchesCohort(record: TradeRecord, field: ModifierField, value: string) {
-        return !value || modifierValue(record, field) === value;
+    function matchesCohort(record: TradeRecord, field: ModifierField, value: string[]) {
+        return !value.length || value.includes(modifierValue(record, field));
     }
 
     const cohortA = $derived(baseRecords.filter((record) => matchesCohort(record, fieldA, valueA)));
     const cohortB = $derived(baseRecords.filter((record) => matchesCohort(record, fieldB, valueB)));
-    const labelA = $derived(valueA || `All ${modifierLabel(fieldA).toLocaleLowerCase("en")}`);
-    const labelB = $derived(valueB || `All ${modifierLabel(fieldB).toLocaleLowerCase("en")}`);
+    const labelA = $derived(
+        valueA.length ? valueA.join(" + ") : "All " + modifierLabel(fieldA).toLocaleLowerCase("en"),
+    );
+    const labelB = $derived(
+        valueB.length ? valueB.join(" + ") : "All " + modifierLabel(fieldB).toLocaleLowerCase("en"),
+    );
     const companyA = $derived(
-        fieldA === "company" && (valueA === "VOC" || valueA === "WIC") ? valueA : null,
+        fieldA === "company" && valueA.length === 1 && (valueA[0] === "VOC" || valueA[0] === "WIC")
+            ? (valueA[0] as "VOC" | "WIC")
+            : null,
     );
     const companyB = $derived(
-        fieldB === "company" && (valueB === "VOC" || valueB === "WIC") ? valueB : null,
+        fieldB === "company" && valueB.length === 1 && (valueB[0] === "VOC" || valueB[0] === "WIC")
+            ? (valueB[0] as "VOC" | "WIC")
+            : null,
     );
 
     function recordMetric(record: TradeRecord): number | null {
         if (metric === "records") return 1;
         if (metric === "value") return record.value;
-        if (record.unit !== activeUnit) return null;
-        if (metric === "quantity") return record.quantity;
-        return record.pricePerUnit;
+        if (metric === "quantity") return record.unit === activeUnit ? record.quantity : null;
+        return record.priceUnit === activeUnit ? record.pricePerUnit : null;
     }
 
     function dimensionValue(record: TradeRecord) {
@@ -182,13 +210,17 @@
     });
 
     const totals = $derived({
-        a: chartData.reduce((sum, item) => sum + item.a, 0),
-        b: chartData.reduce((sum, item) => sum + item.b, 0),
+        a: cohortA.reduce((sum, record) => sum + (recordMetric(record) ?? 0), 0),
+        b: cohortB.reduce((sum, record) => sum + (recordMetric(record) ?? 0), 0),
     });
     const chartMax = $derived(Math.max(...chartData.flatMap((item) => [item.a, item.b]), 1));
 
+    $effect(() => {
+        if (metric === "pricePerUnit") scale = "absolute";
+    });
+
     function barWidth(value: number, cohort: "a" | "b") {
-        if (scale === "absolute") return (value / chartMax) * 100;
+        if (scale === "absolute" || metric === "pricePerUnit") return (value / chartMax) * 100;
         const total = totals[cohort];
         return total ? (value / total) * 100 : 0;
     }
@@ -210,7 +242,7 @@
                 quantity += record.quantity;
                 quantities += 1;
             }
-            if (record.unit === activeUnit && record.pricePerUnit !== null) {
+            if (record.priceUnit === activeUnit && record.pricePerUnit !== null) {
                 price += record.pricePerUnit;
                 priced += 1;
             }
@@ -235,8 +267,8 @@
             : metric === "value"
               ? "recorded value"
               : metric === "quantity"
-                ? `quantity in ${activeUnit || "one unit"}`
-                : `average price per ${activeUnit || "unit"}`,
+                ? "quantity"
+                : "average unit price",
     );
 
     function formatNumber(value: number, maximumFractionDigits = 1) {
@@ -263,17 +295,17 @@
     }
 
     function resetComparison() {
-        textile = "";
+        textile = [];
         yearFrom = firstYear;
         yearTo = lastYear;
         metric = "value";
         dimension = "year";
-        scale = "cohort";
+        scale = "absolute";
         unit = "";
         fieldA = "company";
-        valueA = "VOC";
+        valueA = ["VOC"];
         fieldB = "company";
-        valueB = "WIC";
+        valueB = ["WIC"];
     }
 
     function csvCell(value: string | number | null) {
@@ -284,19 +316,26 @@
     function downloadComparison() {
         const columns: (keyof TradeRecord)[] = [
             "company",
+            "exchangeNumber",
+            "source",
             "year",
             "origin",
             "destination",
             "textile",
             "quantity",
             "unit",
+            "originalUnit",
             "value",
             "pricePerUnit",
+            "priceUnit",
             "color",
+            "inferredColor",
             "pattern",
             "process",
             "fiber",
             "quality",
+            "geography",
+            "other",
         ];
         const selected = baseRecords.filter(
             (record) =>
@@ -314,15 +353,66 @@
                 ].join(",");
             }),
         ];
-        const blob = new Blob([rows.join("\n")], { type: "text/csv;charset=utf-8" });
-        const url = URL.createObjectURL(blob);
-        const anchor = document.createElement("a");
-        anchor.href = url;
-        anchor.download = "dutch-textile-trade-comparison.csv";
-        anchor.click();
-        URL.revokeObjectURL(url);
+        const blob = new Blob(["\uFEFF", rows.join("\n")], { type: "text/csv;charset=utf-8" });
+        downloadBlob(
+            blob,
+            exportFilename(
+                "comparison",
+                [textile, fieldA, valueA, fieldB, valueB, yearFrom, yearTo, metric],
+                "csv",
+            ),
+        );
         downloadReady = true;
         window.setTimeout(() => (downloadReady = false), 1600);
+    }
+
+    function exportImage() {
+        return downloadChart({
+            title: "Textiles, Modifiers, and Values",
+            context: [
+                "Years: " + yearFrom + "–" + yearTo,
+                "Textile: " + (textile.join(", ") || "All"),
+                "Measure: " +
+                    metricTitle +
+                    (metric === "quantity" || metric === "pricePerUnit"
+                        ? " · " + activeUnit
+                        : metric === "value"
+                          ? " · ƒ"
+                          : ""),
+                "Compare across: " +
+                    dimension +
+                    " · " +
+                    (scale === "cohort" ? "Within-cohort share" : "Absolute scale"),
+                "A · " + modifierLabel(fieldA) + ": " + labelA,
+                "B · " + modifierLabel(fieldB) + ": " + labelB,
+            ],
+            series: [
+                { label: labelA, color: "#171711" },
+                { label: labelB, color: "#b9402b" },
+            ],
+            rows: chartData.map((row) => ({
+                label: row.name,
+                values: [row.a, row.b],
+                display: [formatMetric(row.a), formatMetric(row.b)],
+                widths: [barWidth(row.a, "a"), barWidth(row.b, "b")],
+            })),
+            filename: exportFilename(
+                "comparison",
+                [
+                    textile,
+                    fieldA,
+                    valueA,
+                    fieldB,
+                    valueB,
+                    yearFrom,
+                    yearTo,
+                    dimension,
+                    metric,
+                    scale,
+                ],
+                "png",
+            ),
+        });
     }
 </script>
 
@@ -339,71 +429,77 @@
 <section class="comparison-app">
     <div class="page-shell comparison-shell">
         <header class="builder-head">
-            <div>
-                <Scale size={19} />
-                <h2>Filters</h2>
-            </div>
+            <button
+                class="filter-toggle"
+                type="button"
+                aria-expanded={controlsOpen}
+                onclick={() => (controlsOpen = !controlsOpen)}><Scale size={17} /> Filters</button
+            >
             <button type="button" onclick={resetComparison}>
                 <RotateCcw size={14} /> Reset
             </button>
         </header>
 
-        <div class="base-controls">
-            <label>
-                <span>Textile</span>
-                <select bind:value={textile}>
-                    <option value="">All textile names</option>
-                    {#each data.options.textiles as option}
-                        <option value={option}>{option}</option>
-                    {/each}
-                </select>
-            </label>
-            <div class="year-control">
+        {#if controlsOpen}
+            <div class="base-controls">
+                <div class="field">
+                    <MultiSelect
+                        label="Textile"
+                        options={data.options.textiles}
+                        bind:value={textile}
+                    />
+                </div>
+                <div class="year-control">
+                    <label>
+                        <span>From year</span>
+                        <input type="number" min={firstYear} max={yearTo} bind:value={yearFrom} />
+                    </label>
+                    <label>
+                        <span>To year</span>
+                        <input type="number" min={yearFrom} max={lastYear} bind:value={yearTo} />
+                    </label>
+                </div>
                 <label>
-                    <span>From year</span>
-                    <input type="number" min={firstYear} max={yearTo} bind:value={yearFrom} />
-                </label>
-                <label>
-                    <span>To year</span>
-                    <input type="number" min={yearFrom} max={lastYear} bind:value={yearTo} />
-                </label>
-            </div>
-            <label>
-                <span>Compare across</span>
-                <select bind:value={dimension}>
-                    <option value="year">Year</option>
-                    <option value="origin">Origin region</option>
-                    <option value="destination">Destination region</option>
-                    <option value="textile">Textile name</option>
-                </select>
-            </label>
-            <label>
-                <span>Measure</span>
-                <select bind:value={metric}>
-                    <option value="value">Recorded value</option>
-                    <option value="records">Record count</option>
-                    <option value="quantity">Quantity</option>
-                    <option value="pricePerUnit">Average price per unit</option>
-                </select>
-            </label>
-            {#if metric === "quantity" || metric === "pricePerUnit"}
-                <label>
-                    <span>Unit</span>
-                    <select bind:value={unit}>
-                        {#each unitOptions as option}
-                            <option value={option.name}>{option.name} · {option.count} rows</option>
-                        {/each}
+                    <span>Compare across</span>
+                    <select bind:value={dimension}>
+                        <option value="year">Year</option>
+                        <option value="origin">Origin region</option>
+                        <option value="destination">Destination region</option>
+                        <option value="textile">Textile name</option>
                     </select>
                 </label>
-            {/if}
-        </div>
+                <label>
+                    <span>Measure</span>
+                    <select bind:value={metric}>
+                        <option value="value">Recorded value</option>
+                        <option value="records">Record count</option>
+                        <option value="quantity">Quantity</option>
+                        <option value="pricePerUnit">Average unit price</option>
+                    </select>
+                </label>
+                {#if metric === "quantity" || metric === "pricePerUnit"}
+                    <label>
+                        <span>Unit</span>
+                        <select bind:value={unit}>
+                            {#each unitOptions as option}
+                                <option value={option.name}
+                                    >{option.name} · {option.count} rows</option
+                                >
+                            {/each}
+                        </select>
+                    </label>
+                {/if}
+            </div>
+        {/if}
+    </div>
 
+    <div class="page-shell results-shell">
         <div class="cohort-builder">
             <article class="cohort-card cohort-a">
                 <div class="cohort-title">
                     <div class="cohort-identity">
                         {#if companyA}
-                            <CompanyMark company={companyA} showLabel={false} inverted />
+                            <CompanyMark company={companyA} showLabel={false} />
                         {:else}
                             <i aria-hidden="true"></i>
                         {/if}
@@ -420,24 +516,17 @@
                             {/each}
                         </select>
                     </label>
-                    <label>
-                        <span>Matching value</span>
-                        <select bind:value={valueA}>
-                            <option value="">All available values</option>
-                            {#each modifierOptions(fieldA) as option}
-                                <option value={option}>{option}</option>
-                            {/each}
-                        </select>
-                    </label>
+                    <div class="field">
+                        <MultiSelect
+                            label="Matching values"
+                            options={modifierOptions(fieldA)}
+                            bind:value={valueA}
+                        />
+                    </div>
                 </div>
             </article>
 
-            <button
-                class="swap"
-                type="button"
-                onclick={swapCohorts}
-                aria-label="Swap the two cohorts"
-            >
+            <button class="swap" type="button" onclick={swapCohorts} aria-label="Swap cohorts">
                 Swap cohorts
             </button>
 
@@ -445,7 +534,7 @@
                 <div class="cohort-title">
                     <div class="cohort-identity">
                         {#if companyB}
-                            <CompanyMark company={companyB} showLabel={false} inverted />
+                            <CompanyMark company={companyB} showLabel={false} />
                         {:else}
                             <i aria-hidden="true"></i>
                         {/if}
@@ -462,34 +551,30 @@
                             {/each}
                         </select>
                     </label>
-                    <label>
-                        <span>Matching value</span>
-                        <select bind:value={valueB}>
-                            <option value="">All available values</option>
-                            {#each modifierOptions(fieldB) as option}
-                                <option value={option}>{option}</option>
-                            {/each}
-                        </select>
-                    </label>
+                    <div class="field">
+                        <MultiSelect
+                            label="Matching values"
+                            options={modifierOptions(fieldB)}
+                            bind:value={valueB}
+                        />
+                    </div>
                 </div>
             </article>
         </div>
-    </div>
-
-    <div class="page-shell results-shell">
         <div class="result-toolbar">
             <div>
-                <p class="eyebrow">Comparison result</p>
-                <h2>{metricTitle} by {dimension}</h2>
+                <h2>{metricTitle}</h2>
             </div>
             <div class="scale-control" aria-label="Chart scale">
-                <button
-                    class:active={scale === "cohort"}
-                    type="button"
-                    onclick={() => (scale = "cohort")}
-                >
-                    Within-cohort share
-                </button>
+                {#if metric !== "pricePerUnit"}
+                    <button
+                        class:active={scale === "cohort"}
+                        type="button"
+                        onclick={() => (scale = "cohort")}
+                    >
+                        Within-cohort share
+                    </button>
+                {/if}
                 <button
                     class:active={scale === "absolute"}
                     type="button"
@@ -506,16 +591,13 @@
                 </div>
                 <strong>{formatNumber(summaryA.totalValue)} ƒ</strong>
                 <p>
-                    {formatNumber(summaryA.valued, 0)} valued rows of {formatNumber(
-                        summaryA.records,
-                        0,
-                    )}
+                    {formatNumber(summaryA.valued, 0)} valued rows
                 </p>
                 <small>
                     {formatNumber(summaryA.quantity)}
                     {activeUnit || "units"} ·
                     {summaryA.averagePrice === null
-                        ? "no comparable unit price"
+                        ? "price unavailable"
                         : `${formatNumber(summaryA.averagePrice, 2)} ƒ average`}
                 </small>
             </article>
@@ -526,22 +608,22 @@
                 </div>
                 <strong>{formatNumber(summaryB.totalValue)} ƒ</strong>
                 <p>
-                    {formatNumber(summaryB.valued, 0)} valued rows of {formatNumber(
-                        summaryB.records,
-                        0,
-                    )}
+                    {formatNumber(summaryB.valued, 0)} valued rows
                 </p>
                 <small>
                     {formatNumber(summaryB.quantity)}
                     {activeUnit || "units"} ·
                     {summaryB.averagePrice === null
-                        ? "no comparable unit price"
+                        ? "price unavailable"
                         : `${formatNumber(summaryB.averagePrice, 2)} ƒ average`}
                 </small>
             </article>
         </div>
 
         <div class="chart-panel">
+            <div class="export-toolbar">
+                <ChartDownload action={exportImage} disabled={!chartData.length} />
+            </div>
             <div class="chart-key">
                 <span
                     ><i class="key-a"></i>{#if companyA}<CompanyMark
@@ -558,11 +640,7 @@
             </div>
 
             {#if chartData.length}
-                <div
-                    class="comparison-chart"
-                    role="img"
-                    aria-label={`${metricTitle} comparison chart`}
-                >
+                <div class="comparison-chart" role="img" aria-label="Comparison chart">
                     {#each chartData as item}
                         <div class="chart-row">
                             <div class="row-label" title={item.name}>{item.name}</div>
@@ -590,7 +668,7 @@
             {:else}
                 <div class="empty-chart">
                     <BarChart3 size={27} />
-                    <p>No values. Change measure or broaden either cohort.</p>
+                    <p>No matching values.</p>
                 </div>
             {/if}
         </div>
@@ -636,520 +714,438 @@
 </section>
 
 <style>
+    .export-toolbar {
+        display: flex;
+        justify-content: flex-end;
+        padding-block: 1rem;
+    }
     .comparison-app {
-        padding: 1.25rem 0 clamp(6rem, 9vw, 9rem);
-        color: var(--paper);
-        background: var(--ink);
+        font-variant-numeric: tabular-nums lining-nums;
+        display: grid;
+        grid-template-columns: 15rem minmax(0, 1fr);
+        gap: 2.5rem;
+        align-items: start;
+        padding: 2rem var(--page-pad) 5rem;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: var(--sans);
     }
-
+    .comparison-shell,
+    .results-shell {
+        width: 100%;
+        max-width: none;
+        margin: 0;
+        padding: 0;
+        min-width: 0;
+    }
     .comparison-shell {
-        padding-top: 1.2rem;
-        padding-bottom: 1.2rem;
-        background: #22221d;
-        border: 1px solid rgba(244, 239, 229, 0.14);
+        position: sticky;
+        top: 6rem;
+        padding-right: 1.8rem;
+        border-right: 1px solid var(--line-strong);
     }
-
     .builder-head,
-    .builder-head > div,
     .table-head,
     .table-head > div {
         display: flex;
-        gap: 0.55rem;
         align-items: center;
         justify-content: space-between;
+        gap: 0.6rem;
     }
-
-    .builder-head > div,
-    .table-head > div {
-        justify-content: flex-start;
+    .builder-head {
+        padding-bottom: 1.1rem;
+        border-bottom: 1px solid var(--line);
     }
-
-    .builder-head h2,
-    .table-head h2 {
-        margin: 0;
-        font-family: var(--sans);
-        font-size: 0.96rem;
-        font-weight: 650;
-        letter-spacing: -0.015em;
-    }
-
     .builder-head button,
     .table-head button {
         display: inline-flex;
-        gap: 0.35rem;
         align-items: center;
-        color: rgba(244, 239, 229, 0.66);
-        background: none;
+        gap: 0.4rem;
+        min-height: 2rem;
+        padding: 0;
         border: 0;
-        font-size: 0.67rem;
+        background: none;
+        color: inherit;
+        font-size: 0.8125rem;
         cursor: pointer;
     }
-
+    .builder-head .filter-toggle {
+        font-size: 0.95rem;
+        font-weight: 700;
+    }
     .base-controls {
         display: grid;
-        grid-template-columns:
-            minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr)
-            minmax(0, 0.8fr);
-        gap: 0.75rem;
-        margin-top: 1.2rem;
-        padding-top: 1.2rem;
-        border-top: 1px solid rgba(244, 239, 229, 0.14);
+        gap: 1.35rem;
+        margin-top: 1.35rem;
     }
-
-    label > span,
-    .cohort-fields label > span {
-        display: block;
-        margin-bottom: 0.4rem;
-        color: rgba(244, 239, 229, 0.5);
-        font-family: var(--sans);
-        font-size: 0.7rem;
-        font-weight: 560;
-        letter-spacing: 0;
-    }
-
-    .base-controls label,
-    .cohort-fields label {
+    label {
         min-width: 0;
     }
-
+    label > span {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-size: 0.8125rem;
+        color: var(--ink-soft);
+        font-weight: 600;
+    }
     select,
     input {
         width: 100%;
-        min-height: 2.85rem;
-        padding: 0.65rem 0.78rem;
-        color: var(--paper);
-        background: #171713;
-        border: 1px solid rgba(244, 239, 229, 0.22);
-        border-radius: 0.55rem;
-        font-size: 0.8rem;
-        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+        min-height: 2.8rem;
+        padding: 0.55rem 0.65rem;
+        border: 1px solid var(--line-strong);
+        border-radius: 0;
+        color: inherit;
+        background: transparent;
+        font-size: 0.8125rem;
     }
-
-    select {
-        padding-right: 2.2rem;
-        appearance: none;
-        background-image:
-            linear-gradient(45deg, transparent 50%, rgba(244, 239, 229, 0.7) 50%),
-            linear-gradient(135deg, rgba(244, 239, 229, 0.7) 50%, transparent 50%);
-        background-repeat: no-repeat;
-        background-position:
-            calc(100% - 1rem) 52%,
-            calc(100% - 0.7rem) 52%;
-        background-size:
-            0.32rem 0.32rem,
-            0.32rem 0.32rem;
+    button:focus-visible,
+    input:focus-visible,
+    select:focus-visible {
+        outline: 2px solid var(--accent-fill);
+        outline-offset: 3px;
     }
-
     .year-control {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 0.5rem;
+        gap: 0.65rem;
     }
-
     .cohort-builder {
+        position: relative;
         display: grid;
-        grid-template-columns: 1fr auto 1fr;
-        gap: 1rem;
-        align-items: stretch;
-        margin-top: 1.2rem;
+        grid-template-columns: 1fr 1fr;
+        gap: 2.5rem;
+        padding-bottom: 1.5rem;
+        margin-bottom: 2.5rem;
+        border-bottom: 1px solid var(--line-strong);
     }
-
     .cohort-card {
         min-width: 0;
-        padding: 1.15rem;
-        border: 1px solid rgba(244, 239, 229, 0.2);
-        border-radius: 0.65rem;
+        border-top: 3px solid var(--ink);
+        padding-top: 1rem;
     }
-
-    .cohort-a {
-        background: rgba(31, 70, 84, 0.3);
-    }
-
     .cohort-b {
-        background: rgba(166, 65, 47, 0.23);
+        border-color: var(--accent-fill);
     }
-
     .cohort-title {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
-        gap: 1rem;
+        display: flex;
+        justify-content: space-between;
         align-items: center;
+        gap: 0.75rem;
     }
-
-    .cohort-identity,
-    .cohort-title h3 {
+    .cohort-identity {
         display: flex;
         min-width: 0;
-        gap: 0.55rem;
         align-items: center;
-        margin: 0;
+        gap: 0.5rem;
     }
-
     .cohort-identity > i {
-        flex: 0 0 auto;
-        width: 0.75rem;
-        height: 0.75rem;
-        border-radius: 999px;
-        background: var(--saffron);
+        width: 0.65rem;
+        height: 0.65rem;
+        background: currentColor;
+        border-radius: 50%;
     }
-
     .cohort-title h3 {
-        font-family: var(--sans);
-        font-size: 1.08rem;
-        font-weight: 650;
-        line-height: 1.2;
+        min-width: 0;
+        margin: 0;
+        font: 600 1.15rem/1.2 var(--sans);
         overflow-wrap: anywhere;
+        letter-spacing: var(--display-tracking, -0.025em);
     }
-
     .cohort-title strong {
-        color: rgba(244, 239, 229, 0.58);
-        font-family: var(--sans);
-        font-size: 0.72rem;
-        font-variant-numeric: tabular-nums;
-        white-space: nowrap;
+        flex-shrink: 0;
+        font-size: 0.8125rem;
+        font-weight: 400;
+        color: var(--ink-soft);
+        font-variant-numeric: tabular-nums lining-nums;
     }
-
     .cohort-fields {
         display: grid;
-        grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+        grid-template-columns: 1fr 1fr;
         gap: 0.65rem;
         margin-top: 1rem;
     }
-
     .swap {
-        align-self: center;
-        min-height: 2.85rem;
-        padding: 0.65rem 0.85rem;
-        color: var(--paper);
-        background: #171713;
-        border: 1px solid rgba(244, 239, 229, 0.3);
-        border-radius: 0.55rem;
-        font-size: 0.74rem;
-        font-weight: 650;
-        white-space: nowrap;
+        grid-column: 1 / -1;
+        grid-row: 2;
+        justify-self: end;
+        min-height: 2rem;
+        margin-top: -1.25rem;
+        padding: 0;
+        border: 0;
+        background: none;
+        color: var(--ink-soft);
+        font-size: 0.8125rem;
+        text-decoration: underline;
+        text-underline-offset: 3px;
         cursor: pointer;
     }
-
     .swap:hover {
-        color: var(--ink);
-        background: var(--saffron);
+        color: var(--accent-fill);
     }
-
-    .results-shell {
-        margin-top: 1.25rem;
-        padding-top: 2rem;
-        padding-bottom: 2rem;
-        color: var(--ink);
-        background: var(--paper);
-    }
-
     .result-toolbar {
         display: flex;
-        gap: 2rem;
-        align-items: end;
+        flex-wrap: wrap;
+        align-items: center;
         justify-content: space-between;
+        gap: 1rem;
     }
-
     .result-toolbar h2 {
         margin: 0;
-        font-family: var(--serif);
-        font-size: clamp(2rem, 4vw, 3.5rem);
-        font-weight: 400;
+        font: 500 clamp(1.7rem, 3vw, 3rem)/1.1 var(--sans);
+        letter-spacing: var(--display-tracking, -0.045em);
         text-transform: capitalize;
     }
-
     .scale-control {
         display: flex;
+        border-bottom: 1px solid var(--line-strong);
     }
-
     .scale-control button {
-        min-height: 2.65rem;
-        padding: 0.5rem 0.8rem;
+        min-height: 2.8rem;
+        padding: 0.6rem 0.8rem;
+        border: 0;
+        background: none;
         color: var(--ink-soft);
-        background: transparent;
-        border: 1px solid var(--line-strong);
-        font-size: 0.72rem;
+        font-size: 0.8125rem;
         cursor: pointer;
     }
-
-    .scale-control button + button {
-        border-left: 0;
-    }
-
     .scale-control button.active {
         color: var(--paper);
         background: var(--ink);
     }
-
     .summary-cards {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        margin-top: 2rem;
-        border: 1px solid var(--line-strong);
+        gap: 2.5rem;
+        margin: 2.5rem 0;
     }
-
-    .summary-cards > * {
+    .summary-cards > article {
         min-width: 0;
-        padding: 1rem;
-        border-left: 1px solid var(--line-strong);
     }
-
-    .summary-cards > *:first-child {
-        border-left: 0;
-    }
-
     .summary-name {
         display: flex;
-        min-width: 0;
-        gap: 0.5rem;
         align-items: center;
+        gap: 0.5rem;
+        font-size: 0.8125rem;
     }
-
     .summary-name > span {
-        display: block;
         overflow: hidden;
-        color: var(--ink-soft);
-        font-family: var(--sans);
-        font-size: 0.74rem;
-        font-weight: 650;
         text-overflow: ellipsis;
         white-space: nowrap;
     }
-
     .summary-cards strong {
         display: block;
         margin: 0.5rem 0;
-        font-family: var(--serif);
-        font-size: clamp(1.8rem, 3vw, 2.8rem);
-        font-weight: 400;
+        font: 500 clamp(2rem, 4.3vw, 4.5rem)/1 var(--sans);
+        letter-spacing: -0.035em;
+        font-variant-numeric: tabular-nums lining-nums;
     }
-
+    .summary-b strong {
+        color: var(--accent-fill);
+    }
     .summary-cards p,
     .summary-cards small {
         display: block;
-        margin: 0;
+        margin: 0.3rem 0 0;
         color: var(--ink-soft);
-        font-size: 0.75rem;
+        font-size: 0.8125rem;
         line-height: 1.5;
     }
-
-    .summary-a {
-        box-shadow: inset 0 4px var(--indigo);
-    }
-
-    .summary-b {
-        box-shadow: inset 0 4px var(--madder);
-    }
-
     .chart-panel {
-        margin-top: 1.5rem;
-        padding: 1.2rem;
-        border: 1px solid var(--line-strong);
+        min-width: 0;
     }
-
     .chart-key {
         display: flex;
-        flex-wrap: wrap;
-        gap: 0.75rem 1.2rem;
+        gap: 1.5rem;
         align-items: center;
+        flex-wrap: wrap;
         padding-bottom: 1rem;
-        border-bottom: 1px solid var(--line);
-        font-family: var(--sans);
-        font-size: 0.72rem;
+        border-bottom: 1px solid var(--line-strong);
+        font-size: 0.8125rem;
     }
-
     .chart-key span {
         display: flex;
-        gap: 0.35rem;
         align-items: center;
+        gap: 0.4rem;
     }
-
     .chart-key i {
         width: 1.2rem;
-        height: 0.32rem;
+        height: 0.3rem;
     }
-
-    .key-a {
-        background: var(--indigo);
+    .key-a,
+    .bar-a {
+        background: var(--ink);
     }
-
-    .key-b {
-        background: var(--madder);
+    .key-b,
+    .bar-b {
+        background: var(--accent-fill);
     }
-
-    .comparison-chart {
-        margin-top: 1rem;
-    }
-
     .chart-row {
         display: grid;
-        grid-template-columns: minmax(8rem, 0.25fr) 1fr;
-        gap: 1rem;
+        grid-template-columns: minmax(5rem, 0.18fr) 1fr;
+        gap: 1.5rem;
         align-items: center;
-        min-height: 3.7rem;
-        border-top: 1px solid var(--line);
+        min-height: 4.1rem;
+        border-bottom: 1px solid var(--line);
     }
-
-    .chart-row:first-child {
-        border-top: 0;
+    .chart-row:hover {
+        background: color-mix(in srgb, var(--ink) 2%, transparent);
     }
-
     .row-label {
+        min-width: 0;
         overflow: hidden;
-        font-family: var(--sans);
-        font-size: 0.82rem;
-        font-weight: 620;
         text-overflow: ellipsis;
         white-space: nowrap;
+        font-size: 0.84rem;
+        font-weight: 500;
     }
-
     .bar-stack {
         display: grid;
-        gap: 0.3rem;
+        gap: 0.35rem;
     }
-
     .bar-line {
         display: grid;
         grid-template-columns: minmax(0, 1fr) 7.5rem;
-        gap: 0.6rem;
         align-items: center;
+        gap: 1rem;
     }
-
     .bar {
         display: block;
         width: max(1px, var(--bar-width));
-        height: 0.62rem;
-        transition: width 260ms ease;
+        height: 0.85rem;
+        transition: width 240ms ease;
     }
-
-    .bar-a {
-        background: var(--indigo);
-    }
-
-    .bar-b {
-        background: var(--madder);
-    }
-
     .bar-line strong {
-        font-family: var(--sans);
-        font-size: 0.7rem;
-        font-weight: 400;
         text-align: right;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        font-variant-numeric: tabular-nums lining-nums;
     }
-
     .empty-chart {
-        padding: 5rem 1rem;
+        display: grid;
+        place-items: center;
+        align-content: center;
+        min-height: 25rem;
         color: var(--ink-soft);
-        text-align: center;
+        font-size: 0.9rem;
     }
-
-    .empty-chart :global(svg) {
-        margin-bottom: 1rem;
-    }
-
     .table-head {
-        margin-top: 2rem;
-        padding-bottom: 0.8rem;
+        margin-top: 3rem;
+        padding-bottom: 1rem;
     }
-
+    .table-head h2 {
+        margin: 0;
+        font: 600 1.1rem var(--sans);
+        letter-spacing: var(--display-tracking, -0.025em);
+    }
     .table-head button {
-        color: var(--indigo);
-        font-weight: 700;
+        min-height: 2.8rem;
+        padding: 0.5rem 0.8rem;
+        background: var(--accent-fill);
+        color: white;
     }
-
     .result-table {
         overflow-x: auto;
-        border: 1px solid var(--line-strong);
+        border-top: 1px solid var(--line-strong);
     }
-
     table {
+        min-width: 42rem;
         width: 100%;
-        min-width: 48rem;
         border-collapse: collapse;
-        font-size: 0.7rem;
+        font-size: 0.875rem;
+        font-variant-numeric: tabular-nums lining-nums;
     }
-
     th,
     td {
-        padding: 0.7rem 0.8rem;
-        text-align: left;
+        padding: 0.9rem 0.65rem;
         border-bottom: 1px solid var(--line);
+        text-align: left;
     }
-
     thead th {
         color: var(--ink-soft);
-        background: var(--paper-deep);
-        font-family: var(--sans);
-        font-size: 0.7rem;
-        letter-spacing: 0;
+        font-size: 0.8125rem;
+        font-weight: 500;
     }
-
     tbody th {
-        max-width: 18rem;
+        max-width: 15rem;
         overflow: hidden;
-        font-family: var(--sans);
-        font-weight: 620;
         text-overflow: ellipsis;
         white-space: nowrap;
+        font-weight: 500;
     }
-
-    tbody tr:last-child th,
-    tbody tr:last-child td {
-        border-bottom: 0;
-    }
-
-    @media (max-width: 980px) {
-        .base-controls {
-            grid-template-columns: repeat(2, 1fr);
+    @media (max-width: 1150px) {
+        .comparison-app {
+            grid-template-columns: 13rem minmax(0, 1fr);
+            gap: 1.5rem;
         }
-
-        .summary-cards {
+        .comparison-shell {
+            padding-right: 1rem;
+        }
+        .cohort-builder {
+            gap: 1.5rem;
+        }
+        .cohort-fields {
+            grid-template-columns: 1fr;
+        }
+    }
+    @media (max-width: 900px) {
+        select,
+        input {
+            font-size: 1rem;
+        }
+        .comparison-app {
+            display: block;
+            padding-top: 1rem;
+        }
+        .comparison-shell {
+            position: static;
+            padding: 0 0 1.5rem;
+            border-right: 0;
+        }
+        .base-controls {
             grid-template-columns: 1fr 1fr;
         }
-    }
-
-    @media (max-width: 780px) {
+        .cohort-fields {
+            grid-template-columns: 1fr 1fr;
+        }
         .cohort-builder {
-            grid-template-columns: 1fr;
-        }
-
-        .swap {
-            justify-self: center;
-        }
-
-        .result-toolbar {
-            display: block;
-        }
-
-        .scale-control {
             margin-top: 1rem;
         }
-
+    }
+    @media (max-width: 600px) {
+        .cohort-builder,
+        .summary-cards {
+            gap: 1rem;
+        }
+        .cohort-title {
+            align-items: start;
+            flex-direction: column;
+        }
+        .cohort-fields {
+            grid-template-columns: 1fr;
+        }
+        .cohort-title h3 {
+            font-size: 1rem;
+        }
+        .summary-cards strong {
+            font-size: clamp(1.7rem, 7vw, 2.7rem);
+        }
         .chart-row {
             grid-template-columns: 1fr;
-            gap: 0.25rem;
-            padding: 0.6rem 0;
+            gap: 0.45rem;
+            padding: 0.8rem 0;
         }
-    }
-
-    @media (max-width: 580px) {
-        .base-controls,
-        .cohort-fields,
-        .summary-cards {
-            grid-template-columns: 1fr;
-        }
-
-        .summary-cards > * {
-            border-top: 1px solid var(--line-strong);
-            border-left: 0;
-        }
-
-        .summary-cards > *:first-child {
-            border-top: 0;
-        }
-
         .bar-line {
-            grid-template-columns: minmax(0, 1fr) 6rem;
+            grid-template-columns: minmax(0, 1fr) 6.5rem;
+            gap: 0.5rem;
+        }
+        .result-toolbar h2 {
+            font-size: 2rem;
+        }
+        .table-head {
+            align-items: start;
+            gap: 1rem;
+            flex-direction: column;
         }
     }
 </style>

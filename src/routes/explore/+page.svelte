@@ -1,4 +1,8 @@
 <script lang="ts">
+    import MultiSelect from "$lib/components/MultiSelect.svelte";
+    import ChartDownload from "$lib/components/ChartDownload.svelte";
+    import { downloadBlob, downloadChart, exportFilename } from "$lib/utils/download";
+
     import {
         ArrowDownToLine,
         BarChart3,
@@ -10,7 +14,7 @@
         Search,
         X,
     } from "@lucide/svelte";
-    import { onMount } from "svelte";
+    import { onMount, tick } from "svelte";
     import ResearchAppHeader from "$lib/components/ResearchAppHeader.svelte";
     import type { TradeRecord } from "$lib/server/trade";
     import type { PageData } from "./$types";
@@ -24,12 +28,12 @@
     const lastYear = initialData.options.years.at(-1) ?? 1724;
 
     let company = $state("");
-    let textile = $state("");
-    let origin = $state("");
-    let destination = $state("");
-    let color = $state("");
-    let pattern = $state("");
-    let fiber = $state("");
+    let textile = $state<string[]>([]);
+    let origin = $state<string[]>([]);
+    let destination = $state<string[]>([]);
+    let color = $state<string[]>([]);
+    let pattern = $state<string[]>([]);
+    let fiber = $state<string[]>([]);
     let yearFrom = $state(firstYear);
     let yearTo = $state(lastYear);
     let search = $state("");
@@ -37,9 +41,50 @@
     let chartMetric = $state<"records" | "value">("records");
     let activeTab = $state<"chart" | "routes" | "records">("chart");
     let filtersOpen = $state(false);
+    let filterPanel = $state<HTMLElement>();
+    let filterTrigger = $state<HTMLButtonElement>();
+
+    async function openFilters() {
+        filtersOpen = true;
+        await tick();
+        await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+        if (filtersOpen) {
+            filterPanel?.querySelector<HTMLInputElement>("input")?.focus({ preventScroll: true });
+        }
+    }
+
+    function closeFilters() {
+        filtersOpen = false;
+        filterTrigger?.focus({ preventScroll: true });
+    }
+
+    function handleFilterKeydown(event: KeyboardEvent) {
+        if (!filtersOpen || !window.matchMedia("(max-width: 900px)").matches) return;
+        if (event.key === "Escape") {
+            event.preventDefault();
+            closeFilters();
+        }
+        if (event.key !== "Tab" || !filterPanel) return;
+        const controls = [
+            ...filterPanel.querySelectorAll<HTMLElement>(
+                "button:not([disabled]), input, select, summary",
+            ),
+        ].filter((element) => element.checkVisibility());
+        const first = controls[0];
+        const last = controls.at(-1);
+        if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last?.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first?.focus();
+        }
+    }
+    let recordPage = $state(1);
+    const pageSize = 100;
 
     onMount(() => {
-        textile = new URL(window.location.href).searchParams.get("textile") ?? "";
+        textile = new URL(window.location.href).searchParams.getAll("textile");
     });
 
     const normalize = (value: string) => value.toLocaleLowerCase("en").trim();
@@ -47,17 +92,20 @@
     const filtered = $derived.by(() =>
         data.records.filter((record) => {
             const textileMatch =
-                !textile ||
-                normalize(record.textile) === normalize(textile) ||
-                normalize(record.textile).includes(normalize(textile));
+                !textile.length ||
+                textile.some((value) => normalize(record.textile) === normalize(value));
             const searchText = [
                 record.textile,
                 record.origin,
                 record.destination,
                 record.color,
+                record.inferredColor,
                 record.pattern,
                 record.process,
                 record.fiber,
+                record.quality,
+                record.geography,
+                record.other,
             ]
                 .join(" ")
                 .toLocaleLowerCase("en");
@@ -65,16 +113,26 @@
             return (
                 (!company || record.company === company) &&
                 textileMatch &&
-                (!origin || record.origin === origin) &&
-                (!destination || record.destination === destination) &&
-                (!color || record.color === color) &&
-                (!pattern || record.pattern === pattern) &&
-                (!fiber || record.fiber === fiber) &&
+                (!origin.length || origin.includes(record.origin)) &&
+                (!destination.length || destination.includes(record.destination)) &&
+                (!color.length || color.includes(record.color)) &&
+                (!pattern.length || pattern.includes(record.pattern)) &&
+                (!fiber.length || fiber.includes(record.fiber)) &&
                 (record.year === null || (record.year >= yearFrom && record.year <= yearTo)) &&
                 (!search || searchText.includes(search.toLocaleLowerCase("en").trim()))
             );
         }),
     );
+
+    const pageCount = $derived(Math.max(1, Math.ceil(filtered.length / pageSize)));
+    const visibleRecords = $derived(
+        filtered.slice((recordPage - 1) * pageSize, recordPage * pageSize),
+    );
+
+    $effect(() => {
+        filtered;
+        recordPage = 1;
+    });
 
     const summary = $derived.by(() => {
         const textiles = new Set<string>();
@@ -148,7 +206,7 @@
                 textiles: new Set<string>(),
             };
             current.records += 1;
-            current.textiles.add(record.textile);
+            if (record.textile) current.textiles.add(record.textile);
             routes.set(key, current);
         }
 
@@ -159,19 +217,23 @@
     });
 
     const activeFilters = $derived(
-        [company, textile, origin, destination, color, pattern, fiber].filter(Boolean).length +
+        (company ? 1 : 0) +
+            [textile, origin, destination, color, pattern, fiber].reduce(
+                (sum, values) => sum + values.length,
+                0,
+            ) +
             (yearFrom !== firstYear || yearTo !== lastYear ? 1 : 0) +
             (search ? 1 : 0),
     );
 
     function resetFilters() {
         company = "";
-        textile = "";
-        origin = "";
-        destination = "";
-        color = "";
-        pattern = "";
-        fiber = "";
+        textile = [];
+        origin = [];
+        destination = [];
+        color = [];
+        pattern = [];
+        fiber = [];
         yearFrom = firstYear;
         yearTo = lastYear;
         search = "";
@@ -192,30 +254,99 @@
     function downloadFiltered() {
         const columns: (keyof TradeRecord)[] = [
             "company",
+            "exchangeNumber",
+            "source",
             "year",
             "origin",
             "destination",
             "textile",
             "quantity",
             "unit",
+            "originalUnit",
             "value",
             "color",
+            "inferredColor",
             "pattern",
             "process",
             "fiber",
             "quality",
+            "geography",
+            "other",
         ];
         const rows = [
             columns.join(","),
             ...filtered.map((record) => columns.map((column) => csvCell(record[column])).join(",")),
         ];
-        const blob = new Blob([rows.join("\n")], { type: "text/csv;charset=utf-8" });
-        const url = URL.createObjectURL(blob);
-        const anchor = document.createElement("a");
-        anchor.href = url;
-        anchor.download = "dutch-textile-trade-filtered.csv";
-        anchor.click();
-        URL.revokeObjectURL(url);
+        const blob = new Blob(["\uFEFF", rows.join("\n")], { type: "text/csv;charset=utf-8" });
+        downloadBlob(
+            blob,
+            exportFilename(
+                "records",
+                [textile, company, origin, destination, color, pattern, fiber, yearFrom, yearTo],
+                "csv",
+            ),
+        );
+    }
+
+    function exportImage() {
+        const filters: [string, string[]][] = [
+            ["Textile", textile],
+            ["Company", company ? [company] : []],
+            ["Origin", origin],
+            ["Destination", destination],
+            ["Color", color],
+            ["Pattern", pattern],
+            ["Fiber", fiber],
+            ["Search", search ? [search] : []],
+        ];
+        const routeView = activeTab === "routes";
+        const measure = !routeView && chartMetric === "value" ? "Recorded value" : "Record count";
+        return downloadChart({
+            title: "Trade Data Explorer",
+            context: [
+                "Years: " + yearFrom + "–" + yearTo,
+                "Measure: " + measure,
+                "Compare by: " + (routeView ? "Route" : chartDimension),
+                ...filters
+                    .filter(([, values]) => values.length)
+                    .map(([label, values]) => label + ": " + values.join(", ")),
+            ],
+            series: [{ label: measure, color: "#171711" }],
+            rows: (routeView
+                ? routeData.map((row) => ({
+                      name: row.origin + " → " + row.destination,
+                      records: row.records,
+                      value: 0,
+                  }))
+                : chartData
+            ).map((row) => ({
+                label: row.name,
+                values: [row[routeView ? "records" : chartMetric]],
+                display: [
+                    routeView || chartMetric === "records"
+                        ? row.records.toLocaleString()
+                        : formatValue(row.value) + " ƒ",
+                ],
+            })),
+            filename: exportFilename(
+                routeView ? "routes" : "explore",
+                [
+                    textile,
+                    company,
+                    origin,
+                    destination,
+                    color,
+                    pattern,
+                    fiber,
+                    search,
+                    yearFrom,
+                    yearTo,
+                    activeTab === "routes" ? "routes" : chartDimension,
+                    activeTab === "routes" ? "records" : chartMetric,
+                ],
+                "png",
+            ),
+        });
     }
 </script>
 
@@ -227,16 +358,25 @@
     />
 </svelte:head>
 
+<svelte:window onkeydown={handleFilterKeydown} />
+
 <ResearchAppHeader active="trade-explorer" />
 
+{#if filtersOpen}<button
+        class="filter-backdrop"
+        type="button"
+        aria-label="Close filters"
+        onclick={closeFilters}
+    ></button>{/if}
+
 <div class="explorer-shell page-shell">
-    <aside class:open={filtersOpen} class="filters">
+    <aside id="explorer-filters" bind:this={filterPanel} class:open={filtersOpen} class="filters">
         <div class="filter-heading">
             <div>
                 <Filter size={17} strokeWidth={1.5} />
                 <h2>Refine the records</h2>
             </div>
-            <button class="close-filters" type="button" onclick={() => (filtersOpen = false)}>
+            <button class="close-filters" type="button" onclick={closeFilters}>
                 <X size={18} />
                 <span>Close filters</span>
             </button>
@@ -269,35 +409,25 @@
             </div>
         </div>
 
-        <label class="field">
-            <span>Textile name</span>
-            <select bind:value={textile}>
-                <option value="">All textile names</option>
-                {#each data.options.textiles as item}
-                    <option value={item}>{item}</option>
-                {/each}
-            </select>
-        </label>
+        <div class="field">
+            <MultiSelect
+                label="Textile name"
+                options={data.options.textiles}
+                bind:value={textile}
+            />
+        </div>
 
-        <label class="field">
-            <span>Origin region</span>
-            <select bind:value={origin}>
-                <option value="">All origins</option>
-                {#each data.options.origins as item}
-                    <option value={item}>{item}</option>
-                {/each}
-            </select>
-        </label>
+        <div class="field">
+            <MultiSelect label="Origin region" options={data.options.origins} bind:value={origin} />
+        </div>
 
-        <label class="field">
-            <span>Destination region</span>
-            <select bind:value={destination}>
-                <option value="">All destinations</option>
-                {#each data.options.destinations as item}
-                    <option value={item}>{item}</option>
-                {/each}
-            </select>
-        </label>
+        <div class="field">
+            <MultiSelect
+                label="Destination region"
+                options={data.options.destinations}
+                bind:value={destination}
+            />
+        </div>
 
         <div class="year-field field">
             <span>Years</span>
@@ -317,47 +447,37 @@
         <details>
             <summary>Archival modifiers</summary>
             <div class="modifier-fields">
-                <label class="field">
-                    <span>Color</span>
-                    <select bind:value={color}>
-                        <option value="">All colors</option>
-                        {#each data.options.colors as item}
-                            <option value={item}>{item}</option>
-                        {/each}
-                    </select>
-                </label>
-                <label class="field">
-                    <span>Pattern</span>
-                    <select bind:value={pattern}>
-                        <option value="">All patterns</option>
-                        {#each data.options.patterns as item}
-                            <option value={item}>{item}</option>
-                        {/each}
-                    </select>
-                </label>
-                <label class="field">
-                    <span>Fiber</span>
-                    <select bind:value={fiber}>
-                        <option value="">All fibers</option>
-                        {#each data.options.fibers as item}
-                            <option value={item}>{item}</option>
-                        {/each}
-                    </select>
-                </label>
+                <div class="field">
+                    <MultiSelect label="Color" options={data.options.colors} bind:value={color} />
+                </div>
+                <div class="field">
+                    <MultiSelect
+                        label="Pattern"
+                        options={data.options.patterns}
+                        bind:value={pattern}
+                    />
+                </div>
+                <div class="field">
+                    <MultiSelect label="Fiber" options={data.options.fibers} bind:value={fiber} />
+                </div>
             </div>
         </details>
 
         <button class="reset-button" type="button" onclick={resetFilters} disabled={!activeFilters}>
             <RotateCcw size={14} />
-            Reset {activeFilters
-                ? `${activeFilters} active ${activeFilters === 1 ? "filter" : "filters"}`
-                : "filters"}
+            Reset filters {#if activeFilters}<span>({activeFilters})</span>{/if}
         </button>
     </aside>
 
     <section class="explorer-content">
         <div class="mobile-toolbar">
-            <button type="button" onclick={() => (filtersOpen = true)}>
+            <button
+                bind:this={filterTrigger}
+                type="button"
+                aria-controls="explorer-filters"
+                aria-expanded={filtersOpen}
+                onclick={openFilters}
+            >
                 <Filter size={15} /> Filters {#if activeFilters}<span>{activeFilters}</span>{/if}
             </button>
             <button type="button" onclick={downloadFiltered}>
@@ -418,6 +538,9 @@
             </button>
         </div>
 
+        {#if activeTab !== "records"}<div class="export-toolbar">
+                <ChartDownload action={exportImage} disabled={!filtered.length} />
+            </div>{/if}
         {#if activeTab === "chart"}
             <div class="chart-panel" role="tabpanel">
                 <div class="panel-heading">
@@ -467,7 +590,7 @@
                 {:else}
                     <div class="empty-panel">
                         <Database size={26} strokeWidth={1.3} />
-                        <h2>No records match this view.</h2>
+                        <h2>No matching records.</h2>
                         <button type="button" onclick={resetFilters}>Clear filters</button>
                     </div>
                 {/if}
@@ -479,7 +602,7 @@
                         <span>Origin</span>
                         <span>Destination</span>
                     </div>
-                    <p>Top routes by matching record count</p>
+                    <p>Record count</p>
                 </div>
                 {#if routeData.length}
                     <div class="route-list">
@@ -502,13 +625,28 @@
                 {:else}
                     <div class="empty-panel">
                         <Route size={26} strokeWidth={1.3} />
-                        <h2>No complete routes match this view.</h2>
+                        <h2>No matching routes.</h2>
                         <button type="button" onclick={resetFilters}>Clear filters</button>
                     </div>
                 {/if}
             </div>
         {:else}
             <div class="records-panel" role="tabpanel">
+                {#if filtered.length > pageSize}
+                    <nav class="record-pagination" aria-label="Record pages">
+                        <button
+                            type="button"
+                            disabled={recordPage <= 1}
+                            onclick={() => (recordPage -= 1)}>Previous</button
+                        >
+                        <span aria-live="polite">Page {recordPage} / {pageCount}</span>
+                        <button
+                            type="button"
+                            disabled={recordPage >= pageCount}
+                            onclick={() => (recordPage += 1)}>Next</button
+                        >
+                    </nav>
+                {/if}
                 <div class="table-scroll">
                     <table>
                         <thead>
@@ -523,7 +661,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {#each filtered.slice(0, 100) as record}
+                            {#each visibleRecords as record}
                                 <tr>
                                     <td
                                         ><span class={`company ${record.company.toLowerCase()}`}
@@ -531,7 +669,7 @@
                                         ></td
                                     >
                                     <td>{record.year ?? "—"}</td>
-                                    <td><strong>{record.textile}</strong></td>
+                                    <td><strong>{record.textile || "Not recorded"}</strong></td>
                                     <td>{record.origin || "Not recorded"}</td>
                                     <td>{record.destination || "Not recorded"}</td>
                                     <td>
@@ -546,15 +684,12 @@
                                             : "—"}</td
                                     >
                                 </tr>
+                            {:else}
+                                <tr><td colspan="7">No matching records.</td></tr>
                             {/each}
                         </tbody>
                     </table>
                 </div>
-                {#if filtered.length > 100}
-                    <p class="table-note">
-                        Showing 100 of {filtered.length.toLocaleString()} records. Download for all results.
-                    </p>
-                {/if}
             </div>
         {/if}
     </section>
@@ -569,171 +704,146 @@
             endeavors. Humanistic data is subject to change over time, interpretation of compilers
             and researchers in the past and present.
         </p>
-        <a href="/data/">Read the full data methodology</a>
+        <a href="/data/">Data methodology</a>
     </div>
 </aside>
 
 <style>
-    .explorer-shell {
-        display: grid;
-        grid-template-columns: 18.5rem minmax(0, 1fr);
-        align-items: start;
-        padding-bottom: clamp(5rem, 10vw, 10rem);
+    .export-toolbar {
+        display: flex;
+        justify-content: flex-end;
+        padding: 1rem 0;
     }
-
+    .explorer-shell {
+        font-variant-numeric: tabular-nums lining-nums;
+        display: grid;
+        grid-template-columns: 15rem minmax(0, 1fr);
+        gap: 2.5rem;
+        align-items: start;
+        padding-top: 2rem;
+        padding-bottom: 5rem;
+        color: var(--ink);
+        font-family: var(--sans);
+    }
     .filters {
         position: sticky;
-        top: 7rem;
-        max-height: calc(100svh - 8.5rem);
-        padding: 1.2rem;
+        top: 6rem;
+        min-width: 0;
+        max-height: calc(100svh - 7rem);
         overflow-y: auto;
-        border: 1px solid var(--line-strong);
-        background: var(--paper-deep);
+        padding: 0 1.8rem 1rem 0;
+        border-right: 1px solid var(--line-strong);
+        scrollbar-width: thin;
     }
-
     .filter-heading {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        margin-bottom: 1.5rem;
-        padding-bottom: 1rem;
+        gap: 0.75rem;
+        padding-bottom: 1.25rem;
+        margin-bottom: 1.35rem;
         border-bottom: 1px solid var(--line);
     }
-
     .filter-heading > div {
         display: flex;
         align-items: center;
-        gap: 0.6rem;
+        gap: 0.5rem;
     }
-
     .filter-heading h2 {
         margin: 0;
-        font-family: var(--serif);
-        font-size: 1.08rem;
-        font-weight: 400;
+        font: 700 0.95rem var(--sans);
+        letter-spacing: var(--display-tracking, -0.015em);
     }
-
-    .close-filters {
+    .close-filters,
+    .filter-backdrop {
         display: none;
     }
-
     .field {
         display: block;
-        margin-bottom: 1rem;
+        margin-bottom: 1.25rem;
     }
-
     .field > span,
-    .panel-heading span,
-    .year-field label span {
+    .year-field label span,
+    .panel-heading span {
         display: block;
-        margin-bottom: 0.4rem;
+        margin-bottom: 0.5rem;
         color: var(--ink-soft);
-        font-family: var(--sans);
-        font-size: 0.52rem;
-        letter-spacing: 0.07em;
-        text-transform: uppercase;
+        font-size: 0.8125rem;
+        font-weight: 600;
     }
-
     select,
     .field input {
         width: 100%;
-        min-height: 2.65rem;
-        padding: 0.55rem 0.7rem;
-        color: var(--ink);
+        min-height: 2.8rem;
+        padding: 0.55rem 0.65rem;
         border: 1px solid var(--line-strong);
         border-radius: 0;
-        outline: 0;
-        background: var(--cream);
-        font-size: 0.72rem;
+        color: var(--ink);
+        background: transparent;
+        font-size: 0.8125rem;
     }
-
-    select:focus,
-    .field input:focus {
-        border-color: var(--madder);
+    button:focus-visible,
+    input:focus-visible,
+    select:focus-visible {
+        outline: 2px solid var(--accent-fill);
+        outline-offset: 3px;
     }
-
     .search-field > div {
         display: flex;
         align-items: center;
-        gap: 0.55rem;
-        min-height: 2.65rem;
-        padding: 0 0.7rem;
+        gap: 0.5rem;
+        padding-left: 0.7rem;
         border: 1px solid var(--line-strong);
-        background: var(--cream);
     }
-
     .search-field input {
-        min-height: 2.5rem;
-        padding: 0;
+        min-width: 0;
         border: 0;
-        background: transparent;
+        padding-left: 0;
     }
-
     .segmented {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        border: 1px solid var(--line-strong);
+        display: flex;
+        border-bottom: 1px solid var(--line-strong);
     }
-
     .segmented button {
-        min-height: 2.65rem;
-        padding: 0.5rem;
-        color: var(--ink-soft);
+        flex: 1;
+        min-height: 2.8rem;
+        padding: 0.4rem;
         border: 0;
-        border-left: 1px solid var(--line);
-        background: transparent;
-        font-family: var(--sans);
-        font-size: 0.58rem;
+        background: none;
+        color: inherit;
+        font-size: 0.8125rem;
         cursor: pointer;
     }
-
-    .segmented button:first-child {
-        border-left: 0;
-    }
-
     .segmented button.active {
-        color: var(--cream);
+        color: var(--paper);
         background: var(--ink);
     }
-
     .year-field > div {
         display: grid;
-        grid-template-columns: 1fr 1rem 1fr;
-        gap: 0.5rem;
+        grid-template-columns: 1fr 0.5rem 1fr;
+        gap: 0.3rem;
         align-items: end;
     }
-
-    .year-field label span {
-        font-size: 0.48rem;
-    }
-
     .year-field i {
         height: 1px;
-        margin-bottom: 1.3rem;
+        margin-bottom: 1.4rem;
         background: var(--line-strong);
     }
-
     details {
-        margin: 1.2rem 0;
-        padding: 0.8rem 0;
-        border-top: 1px solid var(--line);
-        border-bottom: 1px solid var(--line);
+        margin: 1.5rem 0;
+        padding: 1rem 0;
+        border-block: 1px solid var(--line);
     }
-
     summary {
-        font-family: var(--serif);
-        font-size: 0.82rem;
+        font-size: 0.85rem;
         cursor: pointer;
     }
-
     .modifier-fields {
-        padding-top: 1rem;
+        padding-top: 1.25rem;
     }
-
     .modifier-fields .field:last-child {
         margin-bottom: 0;
     }
-
     .reset-button {
         display: flex;
         align-items: center;
@@ -741,476 +851,412 @@
         gap: 0.5rem;
         width: 100%;
         min-height: 2.8rem;
-        color: var(--ink);
         border: 1px solid var(--line-strong);
-        background: transparent;
-        font-size: 0.64rem;
-        font-weight: 700;
+        background: none;
+        color: inherit;
+        font-size: 0.8125rem;
         cursor: pointer;
     }
-
     .reset-button:disabled {
-        cursor: default;
         opacity: 0.4;
+        cursor: default;
     }
-
     .explorer-content {
         min-width: 0;
-        border-top: 1px solid var(--line-strong);
-        border-right: 1px solid var(--line-strong);
-        border-bottom: 1px solid var(--line-strong);
     }
-
     .mobile-toolbar {
         display: none;
     }
-
     .result-summary {
         display: grid;
-        grid-template-columns: 1.2fr repeat(3, 0.65fr) auto;
-        min-height: 7.4rem;
-        border-bottom: 1px solid var(--line-strong);
+        grid-template-columns: minmax(9rem, 1.7fr) repeat(3, 1fr);
+        column-gap: 1.5rem;
+        row-gap: 1rem;
+        align-items: end;
+        padding-bottom: 2rem;
     }
-
     .result-summary > div {
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
         min-width: 0;
-        padding: 1.1rem;
-        border-right: 1px solid var(--line);
     }
-
-    .result-count {
-        display: grid !important;
-        grid-template-columns: auto 1fr;
-        grid-template-rows: auto auto;
-        column-gap: 0.75rem;
-        align-content: center;
-    }
-
-    .result-count > span {
-        grid-column: 1 / -1;
-    }
-
-    .result-count strong {
-        font-size: clamp(2rem, 4vw, 3.4rem) !important;
-    }
-
-    .result-count p {
-        align-self: end;
-        margin: 0 0 0.4rem;
-        color: var(--ink-soft);
-        font-family: var(--sans);
-        font-size: 0.55rem;
-    }
-
     .result-summary strong {
-        overflow: hidden;
-        font-family: var(--serif);
-        font-size: clamp(1.5rem, 2.6vw, 2.4rem);
-        font-weight: 400;
-        line-height: 1;
-        text-overflow: ellipsis;
+        display: block;
+        font: 500 clamp(1.8rem, 3.8vw, 3.8rem)/1 var(--sans);
+        letter-spacing: -0.035em;
+        font-variant-numeric: tabular-nums lining-nums;
     }
-
+    .result-count strong {
+        margin-top: 0.6rem;
+        font-size: clamp(2.5rem, 5.6vw, 5.5rem);
+    }
     .result-summary span {
-        margin-top: 0.35rem;
+        display: block;
+        margin-top: 0.5rem;
+        font-size: 0.8125rem;
         color: var(--ink-soft);
-        font-family: var(--sans);
-        font-size: 0.5rem;
-        letter-spacing: 0.07em;
-        text-transform: uppercase;
     }
-
+    .result-count p {
+        margin: 0.55rem 0 0;
+        color: var(--ink-soft);
+        font-size: 0.8125rem;
+    }
     .result-summary > button {
+        grid-column: 1 / -1;
+        justify-self: end;
         display: flex;
         align-items: center;
-        justify-content: center;
         gap: 0.45rem;
-        padding: 0 1.2rem;
-        color: var(--paper);
-        border: 0;
-        background: var(--ink);
-        font-size: 0.62rem;
-        font-weight: 700;
-        cursor: pointer;
-    }
-
-    .result-summary > button:disabled {
-        cursor: default;
-        opacity: 0.45;
-    }
-
-    .view-tabs {
-        display: flex;
-        padding: 1rem 1.2rem 0;
-        border-bottom: 1px solid var(--line-strong);
-    }
-
-    .view-tabs button {
-        display: flex;
-        align-items: center;
-        gap: 0.4rem;
         min-height: 2.8rem;
         padding: 0.6rem 1rem;
-        color: var(--ink-soft);
-        border: 1px solid transparent;
-        border-bottom: 0;
-        background: transparent;
-        font-size: 0.67rem;
-        font-weight: 700;
+        border: 0;
+        color: white;
+        background: var(--accent-fill);
+        font-size: 0.8125rem;
         cursor: pointer;
     }
-
-    .view-tabs button.active {
-        position: relative;
-        bottom: -1px;
-        color: var(--ink);
-        border-color: var(--line-strong);
-        background: var(--paper);
+    .result-summary > button:disabled {
+        opacity: 0.4;
     }
-
+    .view-tabs {
+        display: flex;
+        gap: 2rem;
+        border-bottom: 1px solid var(--line-strong);
+    }
+    .view-tabs button {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        min-height: 3.6rem;
+        padding: 0.75rem 0;
+        border: 0;
+        background: none;
+        color: var(--ink-soft);
+        font-size: 0.9rem;
+        cursor: pointer;
+    }
+    .view-tabs button.active {
+        color: var(--ink);
+        font-weight: 600;
+    }
+    .view-tabs button.active::after {
+        position: absolute;
+        content: "";
+        bottom: -1px;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: var(--accent-fill);
+    }
     .chart-panel,
     .routes-panel,
     .records-panel {
-        min-height: 39rem;
-        padding: clamp(1.2rem, 3vw, 2.5rem);
+        min-height: 34rem;
+        padding-top: 1.6rem;
     }
-
     .panel-heading {
         display: flex;
-        gap: 1rem;
         justify-content: flex-end;
-        margin-bottom: 2.5rem;
+        gap: 1rem;
+        margin-bottom: 2rem;
     }
-
     .panel-heading > div {
-        min-width: 11rem;
+        min-width: 10rem;
     }
-
     .panel-heading select {
-        min-height: 2.5rem;
+        min-height: 2.6rem;
     }
-
     .bar-chart {
         display: grid;
-        gap: 0.68rem;
     }
-
     .bar-row {
         display: grid;
-        grid-template-columns: 2rem minmax(8rem, 0.55fr) minmax(10rem, 1fr) 5.5rem;
-        gap: 0.8rem;
+        grid-template-columns: 1.6rem minmax(7rem, 0.65fr) minmax(5rem, 1fr) 5.5rem;
+        gap: 1rem;
         align-items: center;
-        min-height: 2rem;
+        min-height: 3.5rem;
+        border-bottom: 1px solid var(--line);
     }
-
+    .bar-row:hover {
+        background: color-mix(in srgb, var(--ink) 2%, transparent);
+    }
     .bar-rank {
-        color: var(--madder);
-        font-family: var(--sans);
-        font-size: 0.52rem;
+        color: var(--ink-soft);
+        font-size: 0.8125rem;
+        font-variant-numeric: tabular-nums lining-nums;
     }
-
     .bar-name {
         overflow: hidden;
-        font-family: var(--serif);
-        font-size: 0.78rem;
-        text-overflow: ellipsis;
         white-space: nowrap;
+        text-overflow: ellipsis;
+        font-size: 0.86rem;
+        font-weight: 500;
     }
-
     .bar-track {
-        height: 0.7rem;
-        background: var(--paper-deep);
+        height: 1.1rem;
+        background: color-mix(in srgb, var(--ink) 3%, transparent);
     }
-
     .bar-track i {
         display: block;
         width: var(--bar);
-        min-width: 2px;
+        min-width: 1px;
         height: 100%;
-        background: var(--indigo);
-        transform-origin: left;
+        background: var(--accent-fill);
+        transition: width 240ms ease;
     }
-
     .bar-row strong {
-        font-family: var(--sans);
-        font-size: 0.57rem;
+        font-size: 0.8125rem;
         font-weight: 500;
+        font-variant-numeric: tabular-nums lining-nums;
         text-align: right;
     }
-
-    .chart-note,
-    .table-note {
-        margin: 1.5rem 0 0;
+    .chart-note {
+        max-width: 68ch;
+        margin: 2rem 0 0;
+        font-size: 0.8125rem;
+        line-height: 1.6;
         color: var(--ink-soft);
-        font-family: var(--sans);
-        font-size: 0.52rem;
     }
-
     .route-heading {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        margin-bottom: 1.5rem;
+        margin-bottom: 1rem;
         color: var(--ink-soft);
-        font-family: var(--sans);
-        font-size: 0.52rem;
-        letter-spacing: 0.07em;
-        text-transform: uppercase;
+        font-size: 0.8125rem;
     }
-
     .route-heading > div {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 4rem;
-        width: 65%;
+        gap: 3rem;
+        width: 70%;
+        padding-left: 2.6rem;
     }
-
     .route-heading p {
         margin: 0;
     }
-
-    .route-list {
-        border-top: 1px solid var(--line-strong);
-    }
-
     .route-list article {
         display: grid;
-        grid-template-columns: 2rem minmax(0, 1fr) auto;
-        gap: 1rem;
+        grid-template-columns: 1.6rem minmax(0, 1fr) auto;
         align-items: center;
-        min-height: 4.5rem;
-        border-bottom: 1px solid var(--line);
+        gap: 1rem;
+        min-height: 5.2rem;
+        border-top: 1px solid var(--line);
     }
-
     .route-index {
-        color: var(--madder);
-        font-family: var(--sans);
-        font-size: 0.5rem;
+        color: var(--ink-soft);
+        font-size: 0.8125rem;
     }
-
     .route-points {
         display: grid;
-        grid-template-columns: minmax(5rem, 1fr) minmax(3rem, 0.35fr) minmax(5rem, 1fr);
+        grid-template-columns: 1fr 2rem 1fr;
         gap: 1rem;
         align-items: center;
     }
-
     .route-points strong {
+        min-width: 0;
+        font: 500 0.92rem var(--sans);
         overflow: hidden;
-        font-family: var(--serif);
-        font-size: 0.76rem;
-        font-weight: 400;
         text-overflow: ellipsis;
         white-space: nowrap;
     }
-
     .route-points i {
-        position: relative;
         height: 1px;
-        background: var(--line-strong);
+        background: var(--accent-fill);
+        position: relative;
     }
-
-    .route-points i::before,
     .route-points i::after {
-        position: absolute;
-        top: 50%;
-        width: 0.35rem;
-        height: 0.35rem;
         content: "";
-        border-radius: 50%;
-        background: var(--indigo);
-        transform: translateY(-50%);
-    }
-
-    .route-points i::after {
+        position: absolute;
+        width: 5px;
+        height: 5px;
         right: 0;
-        background: var(--madder);
+        top: -2px;
+        background: var(--accent-fill);
+        border-radius: 50%;
     }
-
     .route-meta {
         display: grid;
-        min-width: 8rem;
+        gap: 0.25rem;
+        min-width: 7rem;
+        font-size: 0.8125rem;
         color: var(--ink-soft);
-        font-family: var(--sans);
-        font-size: 0.49rem;
         text-align: right;
     }
-
+    .record-pagination {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 1rem;
+        font-size: 0.8125rem;
+        font-variant-numeric: tabular-nums lining-nums;
+    }
+    .record-pagination button {
+        min-height: 2.75rem;
+        padding: 0.5rem 0.8rem;
+        border: 1px solid var(--line-strong);
+        background: none;
+        cursor: pointer;
+    }
+    .record-pagination button:disabled {
+        opacity: 0.4;
+        cursor: default;
+    }
     .table-scroll {
         overflow-x: auto;
-        border: 1px solid var(--line-strong);
+        border-top: 1px solid var(--line-strong);
     }
-
     table {
         width: 100%;
-        min-width: 58rem;
+        min-width: 52rem;
         border-collapse: collapse;
-        font-size: 0.68rem;
+        font-size: 0.875rem;
+        font-variant-numeric: tabular-nums lining-nums;
     }
-
     th {
-        padding: 0.7rem;
-        color: var(--ink-soft);
+        padding: 0.8rem 0.65rem;
         border-bottom: 1px solid var(--line-strong);
-        background: var(--paper-deep);
-        font-family: var(--sans);
-        font-size: 0.49rem;
-        font-weight: 600;
-        letter-spacing: 0.06em;
+        color: var(--ink-soft);
+        font-size: 0.8125rem;
+        font-weight: 500;
         text-align: left;
-        text-transform: uppercase;
     }
-
     td {
         max-width: 14rem;
-        padding: 0.72rem;
+        padding: 0.9rem 0.65rem;
         overflow: hidden;
         border-bottom: 1px solid var(--line);
         text-overflow: ellipsis;
         white-space: nowrap;
     }
-
     td strong {
-        font-family: var(--serif);
-        font-weight: 600;
+        font-weight: 550;
     }
-
     td small {
         color: var(--ink-soft);
     }
-
     .company {
-        padding: 0.25rem 0.35rem;
-        color: var(--paper);
-        background: var(--indigo);
-        font-family: var(--sans);
-        font-size: 0.48rem;
+        display: inline-block;
+        padding: 0.2rem 0.35rem;
+        border: 1px solid currentColor;
+        color: var(--ink);
+        font-size: 0.8125rem;
+        font-weight: 600;
     }
-
     .company.wic {
-        background: var(--madder);
+        color: var(--accent-fill);
     }
-
     .empty-panel {
         display: grid;
         place-items: center;
         align-content: center;
-        min-height: 27rem;
+        min-height: 25rem;
         color: var(--ink-soft);
-        text-align: center;
     }
-
     .empty-panel h2 {
-        max-width: 16ch;
         margin: 1rem 0;
         color: var(--ink);
-        font-family: var(--serif);
-        font-size: 2rem;
-        font-weight: 400;
+        font: 500 2rem var(--sans);
+        letter-spacing: var(--display-tracking, -0.04em);
     }
-
     .empty-panel button {
-        padding: 0;
-        color: var(--madder);
+        min-height: 2.75rem;
+        padding: 0.5rem 0;
         border: 0;
-        border-bottom: 1px solid currentColor;
-        background: transparent;
-        font-size: 0.7rem;
+        background: none;
+        text-decoration: underline;
+        text-underline-offset: 3px;
+        font-size: 0.8125rem;
         cursor: pointer;
     }
-
     .data-caveat {
-        padding: clamp(3.5rem, 7vw, 6rem) 0;
-        color: var(--paper);
-        background: var(--madder-dark);
+        border-top: 1px solid var(--line-strong);
+        padding: 4rem 0;
     }
-
     .data-caveat > div {
         display: grid;
-        grid-template-columns: 12rem 1fr auto;
-        gap: 3rem;
-        align-items: center;
+        grid-template-columns: 1fr 2fr auto;
+        gap: 2rem;
+        align-items: start;
     }
-
+    .data-caveat p {
+        margin: 0;
+    }
     .data-caveat .eyebrow {
-        margin: 0;
-        color: var(--saffron);
+        font: 500 1.5rem var(--sans);
+        letter-spacing: -0.03em;
+        color: var(--ink);
+        text-transform: none;
     }
-
     .data-caveat > div > p:not(.eyebrow) {
-        max-width: 52rem;
-        margin: 0;
-        color: rgba(244, 239, 229, 0.76);
-        font-family: var(--serif);
-        font-size: clamp(1rem, 1.6vw, 1.25rem);
+        max-width: 63ch;
+        font-size: 0.95rem;
+        line-height: 1.65;
+        color: var(--ink-soft);
     }
-
     .data-caveat a {
-        color: var(--paper);
-        font-size: 0.7rem;
-        font-weight: 700;
-        text-underline-offset: 0.3rem;
+        font-size: 0.8125rem;
+        text-underline-offset: 4px;
     }
-
-    @media (max-width: 1000px) {
+    @media (max-width: 1100px) {
         .explorer-shell {
-            grid-template-columns: 15rem minmax(0, 1fr);
+            grid-template-columns: 13rem minmax(0, 1fr);
+            gap: 1.5rem;
         }
-
+        .filters {
+            padding-right: 1rem;
+        }
         .result-summary {
-            grid-template-columns: 1.1fr repeat(3, 0.6fr);
+            column-gap: 1rem;
         }
-
-        .result-summary > button {
-            display: none;
-        }
-
         .bar-row {
-            grid-template-columns: 1.5rem minmax(7rem, 0.55fr) minmax(7rem, 1fr) 4.5rem;
+            gap: 0.6rem;
+            grid-template-columns: 1.2rem minmax(6rem, 0.6fr) minmax(4rem, 1fr) 4.5rem;
         }
     }
-
-    @media (max-width: 800px) {
+    @media (max-width: 900px) {
+        select,
+        .field input {
+            font-size: 1rem;
+        }
         .explorer-shell {
             display: block;
-            padding-right: 0;
-            padding-left: 0;
+            padding-top: 1rem;
         }
-
         .filters {
             position: fixed;
-            z-index: 80;
-            top: 0;
-            bottom: 0;
-            left: 0;
+            z-index: 90;
+            inset: 0 auto 0 0;
             width: min(90vw, 23rem);
             max-height: none;
             padding: 1.5rem;
+            background: var(--paper);
             visibility: hidden;
-            box-shadow: 1.5rem 0 3rem rgba(0, 0, 0, 0.22);
             transform: translateX(-105%);
-            transition:
-                visibility 220ms,
-                transform 220ms ease;
+            transition: transform 220ms ease;
         }
-
         .filters.open {
             visibility: visible;
             transform: translateX(0);
         }
-
+        .filter-backdrop {
+            display: block;
+            position: fixed;
+            z-index: 85;
+            inset: 0;
+            border: 0;
+            background: #17171180;
+            backdrop-filter: blur(3px);
+        }
         .close-filters {
             display: grid;
             place-items: center;
-            padding: 0.3rem;
+            width: 2.75rem;
+            height: 2.75rem;
             border: 0;
-            background: transparent;
+            background: none;
             cursor: pointer;
         }
-
         .close-filters span {
             position: absolute;
             width: 1px;
@@ -1218,109 +1264,95 @@
             overflow: hidden;
             clip: rect(0, 0, 0, 0);
         }
-
-        .explorer-content {
-            border-right: 0;
-            border-left: 0;
-        }
-
         .mobile-toolbar {
             display: flex;
             justify-content: space-between;
-            padding: 0.75rem var(--page-pad);
-            border-bottom: 1px solid var(--line-strong);
+            padding-bottom: 1.5rem;
         }
-
         .mobile-toolbar button {
             display: flex;
+            gap: 0.5rem;
             align-items: center;
-            gap: 0.4rem;
-            padding: 0.5rem;
-            border: 0;
-            background: transparent;
-            font-size: 0.65rem;
-            font-weight: 700;
+            min-height: 2.8rem;
+            padding: 0.5rem 0.75rem;
+            border: 1px solid var(--line-strong);
+            background: none;
+            font-size: 0.8125rem;
         }
-
         .mobile-toolbar span {
-            display: grid;
-            place-items: center;
-            width: 1.2rem;
-            height: 1.2rem;
-            color: var(--paper);
-            border-radius: 50%;
-            background: var(--madder);
-            font-family: var(--sans);
-            font-size: 0.48rem;
+            color: var(--accent-fill);
         }
-
+        .result-summary > button {
+            display: none;
+        }
+        .result-summary {
+            margin-bottom: 1rem;
+        }
         .data-caveat > div {
             grid-template-columns: 1fr;
             gap: 1.5rem;
         }
     }
-
-    @media (max-width: 620px) {
+    @media (max-width: 550px) {
         .result-summary {
-            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem 1rem;
         }
-
         .result-count {
-            grid-column: 1 / -1;
-            border-bottom: 1px solid var(--line);
+            grid-column: 1/-1;
         }
-
-        .result-summary > div:nth-child(4) {
-            border-right: 0;
+        .result-count strong {
+            font-size: 4.5rem;
         }
-
+        .result-summary strong {
+            font-size: 2.4rem;
+        }
+        .result-count strong {
+            font-size: 4.5rem;
+        }
         .view-tabs {
-            padding-right: 0.5rem;
-            padding-left: 0.5rem;
+            gap: 1.8rem;
         }
-
-        .view-tabs button {
-            flex: 1;
-            justify-content: center;
-            padding: 0.5rem;
-        }
-
         .panel-heading {
             display: grid;
             grid-template-columns: 1fr 1fr;
         }
-
         .panel-heading > div {
             min-width: 0;
         }
-
         .bar-row {
-            grid-template-columns: 1.2rem minmax(6rem, 0.8fr) 1fr 3.5rem;
-            gap: 0.45rem;
+            grid-template-columns: 1rem minmax(5rem, 0.7fr) minmax(2rem, 1fr) 3.7rem;
+            gap: 0.5rem;
         }
-
         .bar-name {
-            font-size: 0.68rem;
+            font-size: 0.8125rem;
         }
-
         .bar-row strong {
-            font-size: 0.49rem;
+            font-size: 0.8125rem;
         }
-
+        .bar-track {
+            height: 0.9rem;
+        }
+        .route-heading {
+            display: none;
+        }
         .route-list article {
-            grid-template-columns: 1.5rem 1fr;
-            padding: 0.8rem 0;
+            grid-template-columns: 1.2rem 1fr;
+            padding: 0.9rem 0;
+            gap: 0.5rem;
         }
-
+        .route-points {
+            grid-template-columns: 1fr 1.5rem 1fr;
+            gap: 0.6rem;
+        }
+        .route-points strong {
+            font-size: 0.83rem;
+        }
         .route-meta {
             grid-column: 2;
             display: flex;
             gap: 1rem;
             text-align: left;
-        }
-
-        .route-heading {
-            display: none;
         }
     }
 </style>

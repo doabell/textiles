@@ -31,10 +31,10 @@
         width: 1.15rem;
         height: 1.15rem;
         object-fit: contain;
-        filter: none;
+        filter: var(--mark-filter);
     }
 
     .inverted img {
-        filter: invert(1);
+        filter: var(--mark-filter-inverted);
     }
 </style>

@@ -13,28 +13,29 @@
 <div class={`project-hero ${tool.accent}`}>
     <div class="page-shell">
         <a href="/data-visualization/"><ArrowLeft size={14} /> All research tools</a>
-        <p class="eyebrow">{tool.eyebrow}</p>
         <h1>{tool.title}</h1>
-        <p>{tool.description}</p>
+        {#if tool.description}<p>{tool.description}</p>{/if}
         <a class="button" href={tool.href}>{tool.action} <ArrowRight size={16} /></a>
     </div>
 </div>
 
-<section class="instructions page-shell">
-    <div>
-        <p class="eyebrow">Application instructions</p>
-        <h2>{tool.title}</h2>
-        <p class="creators">{tool.creators}</p>
-    </div>
-    <ol>
-        {#each tool.instructions as instruction}
-            <li>
-                <CheckCircle2 size={19} strokeWidth={1.4} />
-                <p>{instruction}</p>
-            </li>
-        {/each}
-    </ol>
-</section>
+{#if tool.instructions.length}
+    <section class="instructions page-shell">
+        <div>
+            <p class="eyebrow">Original instructions</p>
+            <h2>{tool.title}</h2>
+            <p class="creators">{tool.creators}</p>
+        </div>
+        <ol>
+            {#each tool.instructions as instruction}
+                <li>
+                    <CheckCircle2 size={19} strokeWidth={1.4} />
+                    <p>{instruction}</p>
+                </li>
+            {/each}
+        </ol>
+    </section>
+{/if}
 
 {#if tool.notes.length}
     <aside class="modifier-note">
@@ -54,7 +55,7 @@
 
 <style>
     .project-hero {
-        padding: 1.2rem 0 clamp(5rem, 10vw, 10rem);
+        padding: 1.2rem 0 clamp(3rem, 6vw, 6rem);
         color: var(--paper);
         background: var(--indigo-deep);
     }
@@ -72,38 +73,30 @@
         display: inline-flex;
         align-items: center;
         gap: 0.4rem;
-        margin-bottom: clamp(4rem, 9vw, 9rem);
+        margin-bottom: clamp(2.5rem, 5vw, 5rem);
         color: inherit;
         font-family: var(--sans);
-        font-size: 0.56rem;
+        font-size: 0.8125rem;
         letter-spacing: 0.07em;
         text-decoration: none;
         text-transform: uppercase;
     }
 
-    .project-hero .eyebrow {
-        color: var(--saffron);
-    }
-
-    .project-hero.saffron .eyebrow {
-        color: var(--madder-dark);
-    }
-
     h1 {
         max-width: 10ch;
         margin-bottom: 1.5rem;
-        font-family: var(--serif);
-        font-size: clamp(4rem, 9vw, 9rem);
-        font-weight: 400;
-        letter-spacing: -0.065em;
-        line-height: 0.85;
+        font-family: var(--editorial-font);
+        font-size: clamp(3rem, 6vw, 6rem);
+        font-weight: var(--display-weight, 400);
+        letter-spacing: var(--display-tracking, -0.035em);
+        line-height: 1.03;
     }
 
     .project-hero > div > p:not(.eyebrow) {
         max-width: 42rem;
         color: rgba(244, 239, 229, 0.72);
         font-family: var(--reading);
-        font-size: clamp(1rem, 1.35vw, 1.14rem);
+        font-size: clamp(1.1875rem, 1.7vw, 1.4rem);
         line-height: 1.62;
     }
 
@@ -134,10 +127,10 @@
 
     .instructions h2 {
         margin-bottom: 1.5rem;
-        font-family: var(--serif);
+        font-family: var(--editorial-font);
         font-size: clamp(3rem, 5vw, 5.4rem);
-        font-weight: 400;
-        letter-spacing: -0.055em;
+        font-weight: var(--display-weight, 400);
+        letter-spacing: var(--display-tracking, -0.035em);
         line-height: 0.95;
     }
 
@@ -145,7 +138,7 @@
         max-width: 33rem;
         color: var(--ink-soft);
         font-family: var(--reading);
-        font-size: 0.85rem;
+        font-size: 1.0625rem;
     }
 
     ol {
@@ -172,7 +165,7 @@
         margin: 0;
         color: var(--ink-soft);
         font-family: var(--reading);
-        font-size: 1rem;
+        font-size: 1.1875rem;
         line-height: 1.64;
     }
 
@@ -208,7 +201,7 @@
         margin: 0;
         color: rgba(244, 239, 229, 0.7);
         font-family: var(--reading);
-        font-size: 1rem;
+        font-size: 1.1875rem;
         line-height: 1.65;
     }
 

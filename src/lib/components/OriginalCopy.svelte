@@ -1,77 +1,60 @@
 <script lang="ts">
+    import { localizeHtml } from "$lib/utils/local-links";
     let { html, compact = false }: { html: string; compact?: boolean } = $props();
+    const content = $derived(
+        localizeHtml(html).replace(
+            /<p[^>]*>\s*<strong>([\s\S]*?)<\/strong>\s*<\/p>/g,
+            "<h2>$1</h2>",
+        ),
+    );
 </script>
 
-<div class:compact class="original-copy">
-    {@html html}
-</div>
+<div class:compact class="original-copy">{@html content}</div>
 
 <style>
     .original-copy {
-        max-width: 65ch;
-        color: #3d3c34;
-        font-family: var(--reading);
-        font-size: clamp(1.03rem, 1.05vw, 1.1rem);
-        font-variation-settings: "wght" 410;
-        line-height: 1.68;
+        max-width: var(--reading-width);
+        color: var(--ink);
+        font: var(--type-body);
         text-wrap: pretty;
     }
-
     .original-copy.compact {
-        max-width: 60ch;
+        max-width: 58ch;
     }
-
     :global(.original-copy p) {
-        margin: 0 0 1.15rem;
+        margin: 0 0 1.25em;
     }
-
-    :global(.original-copy p:has(> strong:only-child)) {
-        margin-top: 3rem;
-        margin-bottom: 1.1rem;
-        padding-bottom: 0.7rem;
-        color: var(--ink);
-        font-family: var(--sans);
-        font-size: 1.22rem;
-        font-weight: 650;
-        letter-spacing: -0.025em;
-        line-height: 1.3;
-        border-bottom: 1px solid var(--line);
+    :global(.original-copy h2) {
+        margin: 2.8em 0 1em;
+        padding-top: 1.2rem;
+        border-top: 1px solid var(--line);
+        font: var(--type-section);
+        letter-spacing: var(--display-tracking, -0.025em);
     }
-
-    :global(.original-copy p:has(> strong:first-child):not(:has(> strong:only-child))) {
-        margin-top: 2.5rem;
+    :global(.original-copy h3) {
+        margin: 2rem 0 0.75rem;
+        font: 550 1rem/1.5 var(--sans);
     }
-
-    :global(.original-copy p > strong:first-child) {
-        display: block;
-        margin-bottom: 0.45rem;
-        font-family: var(--sans);
-        font-size: 1.03rem;
-        font-weight: 650;
-        letter-spacing: -0.015em;
-        line-height: 1.35;
+    :global(.original-copy > :first-child) {
+        margin-top: 0;
     }
-
     :global(.original-copy ul),
     :global(.original-copy ol) {
         display: grid;
-        gap: 0.7rem;
-        margin: 0 0 1.6rem;
-        padding-left: 1.25rem;
+        gap: 0.65em;
+        margin: 0 0 1.5em;
+        padding-left: 1.25em;
     }
-
     :global(.original-copy a) {
         color: var(--madder-dark);
         overflow-wrap: anywhere;
         text-decoration-thickness: 1px;
-        text-underline-offset: 0.22rem;
+        text-underline-offset: 0.18em;
     }
-
+    :global(.original-copy strong) {
+        font-weight: 600;
+    }
     :global(.original-copy em) {
         font-style: italic;
-    }
-
-    :global(.original-copy strong) {
-        color: var(--ink);
     }
 </style>

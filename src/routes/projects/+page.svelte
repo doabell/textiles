@@ -65,10 +65,10 @@
 
     .project-list h2 {
         margin-bottom: 1rem;
-        font-family: var(--serif);
+        font-family: var(--editorial-font);
         font-size: clamp(2rem, 3.5vw, 3.7rem);
-        font-weight: 400;
-        letter-spacing: -0.05em;
+        font-weight: var(--display-weight, 400);
+        letter-spacing: var(--display-tracking, -0.05em);
         line-height: 0.95;
     }
 
